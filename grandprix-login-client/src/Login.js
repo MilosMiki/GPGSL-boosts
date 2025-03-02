@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 
-require('dotenv').config(); // Load environment variables
-
 const loginEndpoint = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5250/login';
 
-function LoginApp() {
+function LoginApp({htmlContent,setHtmlContent}) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [htmlContent, setHtmlContent] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today's date
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -17,6 +15,7 @@ function LoginApp() {
         };
         try {
             // Make the login POST request
+            console.log('API URL:', process.env.REACT_APP_API_BASE_URL);
             const response = await fetch(loginEndpoint, {
                 method: 'POST',
                 headers: {
@@ -32,49 +31,49 @@ function LoginApp() {
 
             const data = await response.json();
             console.log('Login successful:', data);
-            setHtmlContent(data.message);
+
+            const htmlContent = data.message.map(item => `<div>${JSON.stringify(item)}</div>`).join('');
+            setHtmlContent(htmlContent);
         } catch (error) {
             console.error('Error:', error);
         }
     };
 
     return (
-        <div>
+
+        <div className="login-container">
             <form onSubmit={handleSubmit}>
-                <label>
+                <label className="login-label">
                     Username: 
                     <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
+                        className="login-input"
                     />
                 </label>
                 
-                <label>
+                <label className="login-label">
                     Password:
                     <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="login-input" 
                     />
                 </label>
 
-                <button type="submit">Login</button>
+                <button type="submit" className="login-button">Login</button>
             </form>
-
-            {htmlContent && (
-                <div>
-                    <h3>Response HTML:</h3>
-                    <div 
-                        dangerouslySetInnerHTML={{ __html: htmlContent }}
-                        style={{
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            overflow: 'auto'
-                        }}
-                    />
-                </div>
-            )}
+            <div className="boost-deadline-container">
+                <label className="login-label">Boost deadline:</label>
+                <input
+                    type="date"
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    value={selectedDate}
+                    className="date-picker"
+                />
+            </div>
         </div>
     );
 }

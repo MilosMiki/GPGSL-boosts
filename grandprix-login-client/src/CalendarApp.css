@@ -1,0 +1,73 @@
+.calendar-app {
+    width: calc(100% - 20px); /* Adjust width to account for padding */
+    background-color: #f4f4f4;
+    padding: 20px;
+}
+
+.calendar-app h1 {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.calendar-app ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.calendar-app li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.calendar-app li:hover {
+    background-color: #e0e0e0; /* Light grey for hover */
+}
+
+.calendar-app li.selected {
+    background-color: #a0c4ff; /* Light blue for selected */
+}
+
+.venue-id {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.venue-name {
+    flex-grow: 1;
+}
+
+.venue-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.add-entry {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.add-entry input {
+    flex-grow: 1;
+    padding: 5px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.edit-actions button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}

@@ -157,7 +157,12 @@ namespace GrandPrixLoginAPI
                     }
 
                     var htmlContent = await responseGet.Content.ReadAsStringAsync();
-                    var resultObject = new { success = true, message = htmlContent, cookies = cookieList };
+
+                    // Parse HTML and extract structured data
+                    var messages = ParsePmPage(htmlContent);
+
+                    var resultObject = new { success = true, message = messages, cookies = cookieList };
+                    //Console.WriteLine(resultObject);
                     var ress = Results.Json(resultObject);
                     var jsonString = JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true });
                     //Console.WriteLine(jsonString);
@@ -177,6 +182,40 @@ namespace GrandPrixLoginAPI
 
             app.Run();
         }
+        private static List<Message> ParsePmPage(string html)
+        {
+            var messages = new List<Message>();
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            foreach (var row in doc.DocumentNode.SelectNodes("//tr"))
+            {
+                var checkboxNode = row.SelectSingleNode(".//input[@type='checkbox']");
+                var linkNode = row.SelectSingleNode(".//td[2]/a");
+                var senderNode = row.SelectSingleNode(".//td[3]/a");
+                var dateNode = row.SelectSingleNode(".//td[4]");
+
+                if (checkboxNode != null && linkNode != null && senderNode != null && dateNode != null)
+                {
+                    messages.Add(new Message
+                    {
+                        Id = checkboxNode.GetAttributeValue("value", ""),
+                        Title = linkNode.InnerText.Trim(),
+                        Sender = senderNode.InnerText.Trim(),
+                        Date = dateNode.InnerText.Trim()
+                    });
+                }
+            }
+
+            return messages;
+        }
+    }
+    class Message
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string Sender { get; set; }
+        public string Date { get; set; }
     }
 
     public class LoginRequest
