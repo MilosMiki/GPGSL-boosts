@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 
 const loginEndpoint = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5250/login';
 
-function LoginApp({htmlContent,setHtmlContent}) {
+function LoginApp({htmlContent,setHtmlContent, selectedDate, setSelectedDate}) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today's date
 
     const handleSubmit = async (e) => {
         e.preventDefault();
