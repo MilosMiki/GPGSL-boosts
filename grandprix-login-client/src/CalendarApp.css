@@ -32,12 +32,29 @@
 .calendar-app li.selected {
     background-color: #a0c4ff; /* Light blue for selected */
 }
-
 .venue-id {
     margin-right: 10px;
     font-weight: bold;
 }
+.venue-track-container {
+    display: flex;
+    flex-direction: column; /* Stack children vertically */
+}
 
+.venue-header {
+  display: flex;
+  align-items: center; /* Align ID and venue name horizontally */
+}
+
+.venue-details {
+  display: flex;
+  flex-direction: column; /* Stack venue-name and track-name vertically */
+}
+
+.track-name {
+    flex-grow: 1;
+    font-size: 0.6em; /* Smaller font size */
+}
 .venue-name {
     flex-grow: 1;
 }
@@ -49,6 +66,7 @@
 
 .add-entry {
     display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-top: 20px;
 }

@@ -1,0 +1,66 @@
+.lineup-editor table {
+    width: 450px;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    margin: 20px 0;
+}
+.lineup-editor th, .lineup-editor td {
+    padding: 3px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+.lineup-editor th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    color: #333;
+}
+.lineup-editor tr:hover {
+    background-color: #f9f9f9;
+}
+.lineup-editor tr.team-row {
+    background-color: #eaeaea;
+    font-weight: bold;
+}
+.lineup-editor tr.driver-row {
+    background-color: #fafafa;
+}
+.lineup-editor tr.driver-row td:first-child {
+    padding-left: 30px; /* Indent driver rows */
+}
+.lineup-editor {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Prevent stretching */
+}
+
+.main-table {
+    width: 65%;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.side-tables {
+    width: 60%;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column; /* Stack tables vertically */
+    gap: 20px; /* Add spacing between tables */
+}
+
+.unmatched-boosts,
+.other-messages {
+    width: 100%; /* Ensure tables take full width of their container */
+}
+.unmatched-boosts table,
+.other-messages table {
+    width: 100%; /* Ensure tables take full width of their container */
+    width: 90%;
+}
+
+.other-boosts th, 
+.other-boosts td {
+    padding: 10px;
+}
+.unmatched-boosts th, 
+.unmatched-boosts td {
+    padding: 6px;
+}

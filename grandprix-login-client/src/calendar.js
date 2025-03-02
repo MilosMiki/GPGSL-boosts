@@ -5,10 +5,12 @@ import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave } from 'react-icons/fa'
 import './CalendarApp.css'; // Ensure you have this file for styling
 
 
-function CalendarApp({ selectedId, setSelectedId }) {
+function CalendarApp({ selectedId, setSelectedId, setVenueName, setTrackName, setCountry }) {
     const [data, setData] = useState([]);
     const [editMode, setEditMode] = useState(false);
     const [newVenue, setNewVenue] = useState("");
+    const [newTrack, setNewTrack] = useState("");
+    const [newCountry, setNewCountry] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -24,10 +26,17 @@ function CalendarApp({ selectedId, setSelectedId }) {
     const handleAddEntry = async () => {
         if (newVenue.trim() === "") return;
         const newId = data.length + 1;
-        const newEntry = { id: newId, venue: newVenue };
+        const newEntry = { 
+          id: newId, 
+          venue: newVenue, 
+          track: newTrack,
+          country: newCountry
+        };
         await setDoc(doc(db, "calendar", newId.toString()), newEntry);
         setData([...data, newEntry].sort((a, b) => a.id - b.id));
         setNewVenue("");
+        setNewTrack("");
+        setNewCountry(""); 
     };
 
     const handleRemoveEntry = async (id) => {
@@ -67,10 +76,22 @@ function CalendarApp({ selectedId, setSelectedId }) {
                   <li
                       key={item.id}
                       className={selectedId === item.id ? "selected" : ""}
-                      onClick={() => setSelectedId(item.id)}
+                      onClick={() => {
+                          setSelectedId(item.id);
+                          setVenueName(item.venue);
+                          setTrackName(item.track);
+                          setCountry(item.country);
+                      }}
                   >
-                      <span className="venue-id">{item.id}.</span>
-                      <span className="venue-name">{item.venue}</span>
+                      <div className="venue-track-container">
+                        <div className="venue-header">
+                          <span className="venue-id">{item.id}.</span>
+                          <div className="venue-details">
+                            <span className="venue-name">{item.venue}</span>
+                            <span className="track-name">{item.track} ({item.country})</span>
+                          </div>
+                        </div>
+                      </div>
                       {editMode && (
                           <div className="venue-actions">
                               <button onClick={() => handleMoveUp(index)}><FaArrowUp /></button>
@@ -88,6 +109,18 @@ function CalendarApp({ selectedId, setSelectedId }) {
                       value={newVenue}
                       onChange={(e) => setNewVenue(e.target.value)}
                       placeholder="New Venue"
+                  />
+                  <input
+                      type="text"
+                      value={newTrack}
+                      onChange={(e) => setNewTrack(e.target.value)}
+                      placeholder="New Track"
+                  />
+                  <input
+                      type="text"
+                      value={newCountry}
+                      onChange={(e) => setNewCountry(e.target.value)}
+                      placeholder="New Country"
                   />
                   <button onClick={handleAddEntry}>Add Entry</button>
               </div>
