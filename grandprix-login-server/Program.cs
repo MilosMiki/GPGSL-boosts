@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Cors;
 using System.Threading.Tasks;
 using System.Text;
 using System.Diagnostics;
+using DotNetEnv;
 
 namespace GrandPrixLoginAPI
 {
@@ -17,6 +18,8 @@ namespace GrandPrixLoginAPI
     {
         public static void Main(string[] args)
         {
+            Env.Load();
+
             var builder = WebApplication.CreateBuilder(args);
             var corsAllowUrl = Environment.GetEnvironmentVariable("CORS_ALLOW_URL");
 
