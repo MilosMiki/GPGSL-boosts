@@ -47,12 +47,13 @@
 }
 
 .unmatched-boosts,
-.other-messages {
+.other-messages,
+.deadline-boosts {
     width: 100%; /* Ensure tables take full width of their container */
 }
 .unmatched-boosts table,
-.other-messages table {
-    width: 100%; /* Ensure tables take full width of their container */
+.other-messages table,
+.deadline-boosts table {
     width: 90%;
 }
 
@@ -60,7 +61,22 @@
 .other-boosts td {
     padding: 10px;
 }
+
 .unmatched-boosts th, 
-.unmatched-boosts td {
+.unmatched-boosts td,
+.deadline-boosts th, 
+.deadline-boosts td {
     padding: 6px;
+}
+/* New CSS for DeadlineBoostsTable */
+.deadline-boosts table.deadline-table {
+    background-color: #fff5f5; /* Light red shade */
+}
+
+.deadline-boosts table.deadline-table th {
+    background-color: #ffd6d6; /* Slightly darker red for header */
+}
+
+.deadline-boosts table.deadline-table tr:hover {
+    background-color: #ffe6e6; /* Lighter red for hover */
 }

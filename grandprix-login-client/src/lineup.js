@@ -4,7 +4,7 @@ import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore"
 import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaPlus } from 'react-icons/fa';
 import './lineup.css';
 
-function Lineup({venueName,htmlContent,trackName,country}) {
+function Lineup({venueName,htmlContent,trackName,country,date}) {
     const [teams, setTeams] = useState([]);
     const [drivers, setDrivers] = useState([]);
     const [editMode, setEditMode] = useState(false);
@@ -21,6 +21,7 @@ function Lineup({venueName,htmlContent,trackName,country}) {
     const [boosts, setBoosts] = useState([]);
     const [unmatchedBoosts, setUnmatchedBoosts] = useState([]); // New state for unmatched boosts
     const [otherMessages, setOtherMessages] = useState([]); // New state for other messages
+    const [deadlineBoosts, setDeadlineBoosts] = useState([]); // New state for other messages
 
     useEffect(() => {
         // Step 1: Parse the JSON dump
@@ -44,89 +45,105 @@ function Lineup({venueName,htmlContent,trackName,country}) {
         const newBoosts = [];
         const unmatchedBoosts = []; // For boosts that couldn't be matched
         const otherMessages = []; // For messages that are not boosts for this GP.
+        const deadlineBoosts = []; // For messages that are after the deadline
         
         parsedData.forEach((data) => {
-            const { title: rawTitle, sender, date } = data;
+            const { title: rawTitle, sender, date: dataDate } = data;
+
+            // Create a Date object for the parsed data's date
+            const parsedDate = parseCustomDate(dataDate);
+            //console.log(dataDate + " - " + parsedDate);
+            // Create a Date object for the Lineup date at 20:00 hours
+            const lineupDateAt20 = new Date(date);
+            lineupDateAt20.setHours(20, 0, 0, 0); // Set time to 20:00:00.000
+            //console.log(date);
+            //console.log(parsedDate + " - " + lineupDateAt20);
+
             const title = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
             const isDriverBoost = /driver boost/i.test(title); // Case insensitive check
             const isTeamBoost = /team boost/i.test(title); // Case insensitive check
             const findVenue = matchVenue(title, venueName, trackName, country);
 
-            let matched = false;
-            if (isDriverBoost) {
-                // Extract driver name/username and venue from title (with optional parentheses)
-                const [, nameOrUsername, venue] =
-                    title.match(/"?Driver Boost - \(?([^(]+?)\s*(?:\([^)]*\))? - (\(?.+?\)?)\s*[-,]\s*/i) || [];
-                if (nameOrUsername && findVenue) {
-                    // Remove parentheses from name/username if present
-                    const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
-                    // Find matching driver by name OR username (case insensitive)
-                    const driver = drivers.find(
-                        (d) =>
-                            d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
-                            d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
-                    );
-                    if (driver) {
-                        newBoosts.push({ id: driver.id, boosted: 1 }); // Single boost for drivers
-                        matched = true;
-                    }
-                }
-                if(!matched)
-                {
-                    if (findVenue) {
-                        // If the boost message contains venueName and it wasnt matched
-                        unmatchedBoosts.push({ title, sender, date });
-                    }
-                    else{
-                        otherMessages.push({ title, sender, date });
-                    }
-                }
-            } else if (isTeamBoost) {
-                // Extract team name, venue, and boost type from title (flexible delimiters and optional parentheses)
-                const [, name, venue, boostType] =
-                    //title.match(/"?Team Boost - (\(?.+?\)?) - (\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double|)\)?"?/i) || [];
-                    title.match(/"?Team Boost\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
-                if (name && findVenue) {
-                    // Remove parentheses from name if present
-                    const cleanedName = name.replace(/[()]/g, "");
-                    // Find matching team (case insensitive)
-                    const team = teams.find((t) => {
-                        // Check if the team name matches (case-insensitive)
-                        const nameMatches = t.name.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
-                    
-                        // Check if short1 matches, only if short1 exists and is not empty
-                        const short1Matches = t.short1 && t.short1.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
-                    
-                        // Check if short2 matches, only if short2 exists and is not empty
-                        const short2Matches = t.short2 && t.short2.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
-                    
-                        // Check if the username matches (case-insensitive)
-                        const usernameMatches = t.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0;
-                    
-                        // Return true if either name, short1, or short2 matches, AND the username matches
-                        return (nameMatches || short1Matches || short2Matches) && usernameMatches;
-                    });
-                    if (team) {
-                        const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
-                        newBoosts.push({ id: team.id, boosted });
-                        matched = true;
-                    }
-                }
-                if(!matched)
-                {
-                    if (findVenue) {
-                        // If the boost message contains venueName and it wasnt matched
-                        unmatchedBoosts.push({ title, sender, date });
-                    }
-                    else{
-                        otherMessages.push({ title, sender, date });
-                    }
-                }
+            // Compare the dates
+            if (parsedDate > lineupDateAt20) {
+                deadlineBoosts.push({ title, sender, date: formatDate(parsedDate) });
             }
-            
-            else {
-                // If the message contains venueName but is not a boost, add it to otherMessages
-                otherMessages.push({ title, sender, date });
+            else{
+                let matched = false;
+                if (isDriverBoost) {
+                    // Extract driver name/username and venue from title (with optional parentheses)
+                    const [, nameOrUsername, venue] =
+                        title.match(/"?Driver Boost - \(?([^(]+?)\s*(?:\([^)]*\))? - (\(?.+?\)?)\s*[-,]\s*/i) || [];
+                    if (nameOrUsername && findVenue) {
+                        // Remove parentheses from name/username if present
+                        const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
+                        // Find matching driver by name OR username (case insensitive)
+                        const driver = drivers.find(
+                            (d) =>
+                                d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
+                                d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
+                        );
+                        if (driver) {
+                            matched = true;
+                            newBoosts.push({ id: driver.id, boosted: 1 }); // Single boost for drivers
+                        }
+                    }
+                    if(!matched)
+                    {
+                        if (findVenue) {
+                            // If the boost message contains venueName and it wasnt matched
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate) });
+                        }
+                        else{
+                            otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                        }
+                    }
+                } else if (isTeamBoost) {
+                    // Extract team name, venue, and boost type from title (flexible delimiters and optional parentheses)
+                    const [, name, venue, boostType] =
+                        //title.match(/"?Team Boost - (\(?.+?\)?) - (\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double|)\)?"?/i) || [];
+                        title.match(/"?Team Boost\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
+                    if (name && findVenue) {
+                        // Remove parentheses from name if present
+                        const cleanedName = name.replace(/[()]/g, "");
+                        // Find matching team (case insensitive)
+                        const team = teams.find((t) => {
+                            // Check if the team name matches (case-insensitive)
+                            const nameMatches = t.name.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
+                        
+                            // Check if short1 matches, only if short1 exists and is not empty
+                            const short1Matches = t.short1 && t.short1.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
+                        
+                            // Check if short2 matches, only if short2 exists and is not empty
+                            const short2Matches = t.short2 && t.short2.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
+                        
+                            // Check if the username matches (case-insensitive)
+                            const usernameMatches = t.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0;
+                        
+                            // Return true if either name, short1, or short2 matches, AND the username matches
+                            return (nameMatches || short1Matches || short2Matches) && usernameMatches;
+                        });
+                        if (team) {
+                            const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
+                            matched = true;
+                            newBoosts.push({ id: team.id, boosted });
+                        }
+                    }
+                    if(!matched)
+                    {
+                        if (findVenue) {
+                            // If the boost message contains venueName and it wasnt matched
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate) });
+                        }
+                        else{
+                            otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                        }
+                    }
+                }
+                else {
+                    // If the message contains venueName but is not a boost, add it to otherMessages
+                    otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                }
             }
         });
 
@@ -134,7 +151,8 @@ function Lineup({venueName,htmlContent,trackName,country}) {
         setBoosts(newBoosts);
         setUnmatchedBoosts(unmatchedBoosts); // New state for unmatched boosts
         setOtherMessages(otherMessages); // New state for other messages
-    }, [htmlContent, venueName]); // only update when the venue updates, or if it finds new PMs sent. 
+        setDeadlineBoosts(deadlineBoosts);
+    }, [htmlContent, venueName, date]); // only update when the venue updates, or if it finds new PMs sent. 
                                   // If you update the teams/drivers list, the behaviour may break, and a reload is recommended
 
     // Fetch Teams
@@ -376,6 +394,7 @@ function Lineup({venueName,htmlContent,trackName,country}) {
             
 
             <div className="side-tables">
+                <DeadlineBoostsTable boosts={deadlineBoosts} />
                 <UnmatchedBoostsTable boosts={unmatchedBoosts} />
                 <OtherMessagesTable messages={otherMessages} />
             </div>
@@ -384,7 +403,41 @@ function Lineup({venueName,htmlContent,trackName,country}) {
     );
 };
 
+function DeadlineBoostsTable({ boosts }) {
+    // If boosts is an empty array, render nothing
+    if (boosts.length === 0) {
+        return <> </>;
+    }
+    return (
+        <div className="deadline-boosts">
+            <h3>Invalid Boosts (after deadline)</h3>
+            <table className="deadline-table">
+                <thead>
+                    <tr>
+                        <th>Sender</th>
+                        <th>Message</th>
+                        <th>Date</th> {/* New column for date */}
+                    </tr>
+                </thead>
+                <tbody>
+                    {boosts.map((boost, index) => (
+                        <tr key={index}>
+                            <td>{boost.sender}</td>
+                            <td>{boost.title}</td>
+                            <td>{boost.date}</td> {/* Display the date */}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 function UnmatchedBoostsTable({ boosts }) {
+    // If boosts is an empty array, render nothing
+    if (boosts.length === 0) {
+        return <> </>;
+    }
     return (
         <div className="unmatched-boosts">
             <h3>Unmatched Boosts</h3>
@@ -409,7 +462,12 @@ function UnmatchedBoostsTable({ boosts }) {
         </div>
     );
 }
+
 function OtherMessagesTable({ messages }) {
+    // If messages is an empty array, render nothing
+    if (messages.length === 0) {
+        return <> </>;
+    }
     return (
         <div className="other-messages">
             <h3>Other Messages</h3>
@@ -442,6 +500,39 @@ function decodeHTMLEntities(text) {
 
 function matchVenue(title, venueName, trackName, country){
     return title.includes(venueName) || title.includes(trackName) || title.includes(country)
+}
+
+function parseCustomDate(dateString) {
+    // Split the date and time parts
+    const [datePart, timePart] = dateString.split(" ");
+    const [month, day, year] = datePart.split("/");
+    const [time, modifier] = timePart.split(/(?=[AP]M)/); // Split time and AM/PM
+
+    // Split hours and minutes
+    let [hours, minutes] = time.split(":");
+
+    // Convert to 24-hour format
+    if (modifier === "PM" && hours !== "12") {
+        hours = String(Number(hours) + 12);
+    }
+    if (modifier === "AM" && hours === "12") {
+        hours = "00";
+    }
+
+    // Create a new Date object in a format the constructor can understand
+    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+    return new Date(isoDateString);
+}
+
+// Helper function to format the date as "YYYY-MM-DD HH:MM"
+function formatDate(date){
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
+    //return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 export default Lineup;

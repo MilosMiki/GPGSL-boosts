@@ -11,6 +11,7 @@ function App() {
     const [venueName, setVenueName] = useState('');
     const [trackName, setTrackName] = useState('');
     const [country, setCountry] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today's date
 
     return (
         <div className="App">
@@ -19,10 +20,11 @@ function App() {
             </div>
             <div className="sidebar-main-container">
                 <div className="header">
-                    <LoginApp htmlContent={htmlContent} setHtmlContent={setHtmlContent} triedLogin={triedLogin} setTriedLogin={setTriedLogin}/>
+                    <LoginApp htmlContent={htmlContent} setHtmlContent={setHtmlContent} triedLogin={triedLogin} setTriedLogin={setTriedLogin} 
+                        selectedDate={selectedDate} setSelectedDate={setSelectedDate}/>
                 </div>
                 <div className="main-content">
-                    <Lineup venueName={venueName} htmlContent={htmlContent} trackName={trackName} country={country}/>
+                    <Lineup venueName={venueName} htmlContent={htmlContent} trackName={trackName} country={country} date={selectedDate}/>
                     {htmlContent}
                 </div>
             </div>
