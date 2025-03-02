@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Cors;
 using System.Threading.Tasks;
 using System.Text;
+using System.Diagnostics;
 
 namespace GrandPrixLoginAPI
 {
@@ -17,13 +18,28 @@ namespace GrandPrixLoginAPI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var corsAllowUrl = Environment.GetEnvironmentVariable("CORS_ALLOW_URL");
 
             // Add CORS configuration to the services container
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowLocalhost", policy =>
                 {
-                    policy.WithOrigins(new[] { "http://localhost:3000" });
+                    
+                    // Ensure the environment variable is not null or empty
+                    if (!string.IsNullOrEmpty(corsAllowUrl))
+                    {
+                        // Split the environment variable into multiple URLs if needed (e.g., comma-separated)
+                        var allowedOrigins = corsAllowUrl.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        // Set the allowed origins
+                        policy.WithOrigins(allowedOrigins);
+                    }
+                    else
+                    {
+                        // Fallback to a default origin if the environment variable is not set
+                        policy.WithOrigins("https://localhost:5001", "http://localhost:5000");
+                    }
                     policy.AllowAnyMethod();
                     policy.AllowAnyHeader();
                     policy.AllowCredentials();
