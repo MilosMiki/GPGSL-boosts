@@ -80,3 +80,8 @@
 .deadline-boosts table.deadline-table tr:hover {
     background-color: #ffe6e6; /* Lighter red for hover */
 }
+
+.deadline-date,
+.unmatched-date{
+  width: 125px;
+}

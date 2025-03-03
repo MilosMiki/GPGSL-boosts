@@ -25,7 +25,6 @@ function App() {
                 </div>
                 <div className="main-content">
                     <Lineup venueName={venueName} htmlContent={htmlContent} trackName={trackName} country={country} date={selectedDate}/>
-                    {htmlContent}
                 </div>
             </div>
         </div>

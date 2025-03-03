@@ -19,9 +19,11 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
     });
     const [driverId, setDriverId] = useState(1);
     const [boosts, setBoosts] = useState([]);
-    const [unmatchedBoosts, setUnmatchedBoosts] = useState([]); // New state for unmatched boosts
-    const [otherMessages, setOtherMessages] = useState([]); // New state for other messages
-    const [deadlineBoosts, setDeadlineBoosts] = useState([]); // New state for other messages
+    const [unmatchedBoosts, setUnmatchedBoosts] = useState([]);
+    const [otherMessages, setOtherMessages] = useState([]);
+    const [deadlineBoosts, setDeadlineBoosts] = useState([]);
+    const [warnings, setWarnings] = useState([]);
+    const [totals, setTotals] = useState([]);
 
     useEffect(() => {
         // Step 1: Parse the JSON dump
@@ -258,6 +260,60 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             username: ""
         });
     };
+    
+    useEffect(() => {
+        const fetchWarnings = async () => {
+            var docid;
+            try {
+                const warningsRef = collection(db, "warnings");
+                const warningDocs = await getDocs(warningsRef);
+                const fetchedWarnings = [];
+                const fetchedTotals = [];
+
+                warningDocs.forEach(doc => {
+                const data = doc.data();
+                //docid = console.log(doc.id);
+                
+                if (doc.id === "notPosted") {
+                    //console.log(data.Data);
+                    const notPosted = JSON.parse(data.Data);
+                    // the output of my doc is a stringified JSON
+                    // here we try to find matches to the usernames
+                
+                    notPosted.forEach(doc => {
+                    fetchedWarnings.push({
+                        Username: doc.Username
+                    });
+                    });
+                    setWarnings(fetchedWarnings);
+                    //console.log("Warnings: "+ fetchedWarnings);
+                }
+
+                if (doc.id === "total") {
+                    const total = JSON.parse(data.Data);
+                    // the output of my doc is a stringified JSON
+                    // here we try to find matches to the usernames
+                
+                    //console.log("Totals: "+ fetchedTotals);
+                    total.forEach(doc => {
+                    fetchedTotals.push({
+                        Username: doc.Username,
+                        Warnings: doc.Warnings
+                    });
+                    //console.log(doc);
+                    });
+                    setTotals(fetchedTotals);
+                    //console.log("Totals: "+ fetchedTotals);
+                }
+                });
+                
+            } catch (error) {
+                //console.log("Error on id: " + docid);
+                console.error("Error fetching warnings: ", error);
+            }
+        };
+        fetchWarnings();
+    }, []);
 
     const editLineup = () => {
         setEditMode(!editMode);
@@ -271,6 +327,8 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                         <tr>
                             <th>User</th>
                             <th>Boosts</th>
+                            <th>Warning</th> {/*note: I (the guy doing the activity check) must not update this resource, 
+                                                      in the period between the boost deadline and the perfs being posted*/}
                         </tr>
                     </thead>
                     <tbody>
@@ -292,12 +350,28 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                         </div>
                                         )}
                                     </td>
-                                    <td>
+                                    <td
+                                        style={{
+                                            textAlign: 'center'
+                                        }}>
                                         {boosts.find((boost) => boost.id === team.id)?.boosted == 1
-                                        ? "+"
+                                        ? "4"
                                         : boosts.find((boost) => boost.id === team.id)?.boosted == 2
-                                        ? "+ + +"
+                                        ? "8"
                                         : "" || ""}
+                                    </td>
+                                    {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
+                                                                                                      In practice, this means after I post with the GPGSL account.) */}
+                                    <td
+                                        style={{
+                                            textAlign: 'center'
+                                        }}
+                                    >
+                                        {warnings.some((warning) => warning.Username === team.username) ? 
+                                                totals.find(
+                                                (total) => total.Username === team.username
+                                                )?.Warnings ?? ""
+                                            : ""}
                                     </td>
                                 </tr>
                                 {/* Driver Rows */}
@@ -306,8 +380,24 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                     .map(driver => (
                                         <tr key={driver.id} className="driver-row">
                                             <td style={{ paddingLeft: '20px' }}>#{driver.id % 100}: {driver.name} ({driver.username})</td>
-                                            <td>
-                                            {boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? "+" : "" || ""}</td>
+                                            <td
+                                            style={{
+                                                textAlign: 'center'
+                                            }}>
+                                            {boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? "200" : "" || ""}</td>
+                                            {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
+                                                                                                      In practice, this means after I post with the GPGSL account.) */}
+                                            <td
+                                                style={{
+                                                    textAlign: 'center'
+                                                }}
+                                            >
+                                                {warnings.some((warning) => warning.Username === driver.username) ? 
+                                                        totals.find(
+                                                        (total) => total.Username === driver.username
+                                                        )?.Warnings ?? ""
+                                                 : ""}
+                                            </td>
                                         </tr>
                                     ))}
                             </React.Fragment>
@@ -416,7 +506,7 @@ function DeadlineBoostsTable({ boosts }) {
                     <tr>
                         <th>Sender</th>
                         <th>Message</th>
-                        <th>Date</th> {/* New column for date */}
+                        <th className="deadline-date">Date</th> {/* New column for date */}
                     </tr>
                 </thead>
                 <tbody>
@@ -424,7 +514,7 @@ function DeadlineBoostsTable({ boosts }) {
                         <tr key={index}>
                             <td>{boost.sender}</td>
                             <td>{boost.title}</td>
-                            <td>{boost.date}</td> {/* Display the date */}
+                            <td className="deadline-date">{boost.date}</td> {/* Display the date */}
                         </tr>
                     ))}
                 </tbody>
@@ -446,7 +536,7 @@ function UnmatchedBoostsTable({ boosts }) {
                     <tr>
                         <th>Sender</th>
                         <th>Message</th>
-                        <th>Date</th> {/* New column for date */}
+                        <th className="unmatched-date">Date</th> {/* New column for date */}
                     </tr>
                 </thead>
                 <tbody>
@@ -454,7 +544,7 @@ function UnmatchedBoostsTable({ boosts }) {
                         <tr key={index}>
                             <td>{boost.sender}</td>
                             <td>{boost.title}</td>
-                            <td>{boost.date}</td> {/* Display the date */}
+                            <td className="unmatched-date">{boost.date}</td> {/* Display the date */}
                         </tr>
                     ))}
                 </tbody>
@@ -476,7 +566,7 @@ function OtherMessagesTable({ messages }) {
                     <tr>
                         <th>Sender</th>
                         <th>Message</th>
-                        <th>Date</th> {/* Date column */}
+                        <th className="unmatched-date">Date</th> {/* Date column */}
                     </tr>
                 </thead>
                 <tbody>
@@ -484,7 +574,7 @@ function OtherMessagesTable({ messages }) {
                         <tr key={index}>
                             <td>{message.sender}</td>
                             <td>{message.title}</td>
-                            <td>{message.date}</td> {/* Display the date */}
+                            <td className="unmatched-date"  >{message.date}</td> {/* Display the date */}
                         </tr>
                     ))}
                 </tbody>
