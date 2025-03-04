@@ -21,8 +21,14 @@
     background-color: #eaeaea;
     font-weight: bold;
 }
+.lineup-editor tr.team-row:hover {
+    background-color: #e1e1e1;
+}
 .lineup-editor tr.driver-row {
-    background-color: #fafafa;
+    background-color: #f9f9f9;
+}
+.lineup-editor tr.driver-row:hover {
+    background-color: #f4f4f4;
 }
 .lineup-editor tr.driver-row td:first-child {
     padding-left: 30px; /* Indent driver rows */
@@ -31,6 +37,23 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start; /* Prevent stretching */
+}
+
+.lineup-editor tr.duplicate-team-row {
+    background-color: #fff3cd; /* Soft yellow tint */
+    font-weight: bold;
+}
+
+.lineup-editor tr.duplicate-team-row:hover {
+    background-color: #ffeb99; /* Slightly stronger yellow on hover */
+}
+
+.lineup-editor tr.duplicate-driver-row {
+    background-color: #fff9e6; /* Very light yellow tint */
+}
+
+.lineup-editor tr.duplicate-driver-row:hover {
+    background-color: #fff2cc; /* Slightly stronger but still light */
 }
 
 .main-table {

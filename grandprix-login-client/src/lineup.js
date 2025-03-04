@@ -25,6 +25,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
     const [warnings, setWarnings] = useState([]);
     const [totals, setTotals] = useState([]);
 
+
     useEffect(() => {
         // Step 1: Parse the JSON dump
         const divElements = htmlContent.split("</div>");
@@ -43,12 +44,21 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             })
             .filter((data) => data !== null);
 
-        // Step 2: Match fields and update boosts
+        // Step 2: Reset duplicates for each team
+        teams.forEach(team => {
+            team.duplicate=false;
+        });
+        // Step 3: Reset duplicates for each driver
+        drivers.forEach(driver => {
+            driver.duplicate=false;
+        });
+
+        
+        // Step 4: Match fields and update boosts
         const newBoosts = [];
         const unmatchedBoosts = []; // For boosts that couldn't be matched
         const otherMessages = []; // For messages that are not boosts for this GP.
         const deadlineBoosts = []; // For messages that are after the deadline
-        
         parsedData.forEach((data) => {
             const { title: rawTitle, sender, date: dataDate } = data;
 
@@ -86,8 +96,19 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
                         );
                         if (driver) {
-                            matched = true;
-                            newBoosts.push({ id: driver.id, boosted: 1 }); // Single boost for drivers
+                            if (driver.username === sender) {
+                                matched = true;
+                                const existingBoost = newBoosts.find((b) => b.id === driver.id);
+                                if (existingBoost) {
+                                    driver.duplicate = true; // Mark as duplicate
+                                } else {
+                                    newBoosts.push({ id: driver.id, boosted: 1 }); // Single boost for drivers
+                                    driver.duplicate=false;
+                                }
+                            }
+                            else{
+                                matched = false; //this means somebody else sent in the driver boost
+                            }
                         }
                     }
                     if(!matched)
@@ -126,9 +147,20 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                             return (nameMatches || short1Matches || short2Matches) && usernameMatches;
                         });
                         if (team) {
-                            const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
-                            matched = true;
-                            newBoosts.push({ id: team.id, boosted });
+                            if (team.username === sender) {
+                                const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
+                                matched = true;
+                                const existingBoost = newBoosts.find((b) => b.id === team.id);
+                                if (existingBoost) {
+                                    team.duplicate = true; // Mark as duplicate
+                                } else {    
+                                    newBoosts.push({ id: team.id, boosted });
+                                    team.duplicate=false;
+                                }
+                            }
+                            else{
+                                matched = false; //this means somebody else sent in the team boost
+                            }
                         }
                     }
                     if(!matched)
@@ -335,11 +367,11 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                         {teams.map(team => (
                             <React.Fragment key={team.id}>
                                 {/* Team Row */}
-                                <tr className="team-row">
+                                <tr className={team.duplicate ? "duplicate-team-row" : "team-row"}>
                                     <td>
                                         {/* Team name and username */}
                                         <div>
-                                        {team.id / 100}. {team.name} ({team.username})
+                                        {team.id / 100}. {team.name} ({team.username}) {team.duplicate ? " - duplicate entry" : ""}
                                         </div>
                                         {/* Display short1 and short2 if they exist */}
                                         {(team.short1 || team.short2) && (
@@ -378,8 +410,8 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 {drivers
                                     .filter(driver => Math.floor(driver.id / 100) === Math.floor(team.id / 100))
                                     .map(driver => (
-                                        <tr key={driver.id} className="driver-row">
-                                            <td style={{ paddingLeft: '20px' }}>#{driver.id % 100}: {driver.name} ({driver.username})</td>
+                                        <tr key={driver.id} className={driver.duplicate ? "duplicate-driver-row" : "driver-row"}>
+                                            <td style={{ paddingLeft: '20px' }}>#{driver.id % 100}: {driver.name} ({driver.username}) {driver.duplicate ? " - duplicate entry" : ""}</td>
                                             <td
                                             style={{
                                                 textAlign: 'center'
@@ -592,7 +624,28 @@ function matchVenue(title, venueName, trackName, country){
     return title.includes(venueName) || title.includes(trackName) || title.includes(country)
 }
 
-function parseCustomDate(dateString) {
+function parseCustomDate(dateString) { 
+    const nowSys = new Date();
+    const now = new Date(nowSys.getUTCFullYear(), nowSys.getUTCMonth(), nowSys.getUTCDate(), nowSys.getUTCHours(), nowSys.getUTCMinutes(), nowSys.getUTCSeconds());
+
+
+    // Handle relative time formats
+    const relativeMatch = dateString.match(/(\d+)\s+(minute|hour|week)s?\s+ago/i);
+    if (relativeMatch) {
+        const amount = parseInt(relativeMatch[1], 10) + 1;
+        const unit = relativeMatch[2];
+
+        if (unit === "minute") {
+            now.setMinutes(now.getMinutes() - amount);
+        } else if (unit === "hour") {
+            now.setHours(now.getHours() - amount);
+        } else if (unit === "week") {
+            now.setDate(now.getDate() - amount * 7);
+        }
+        return now; // Return the adjusted Date object
+    }
+
+    // Standard date-time format parsing
     // Split the date and time parts
     const [datePart, timePart] = dateString.split(" ");
     const [month, day, year] = datePart.split("/");
@@ -614,7 +667,7 @@ function parseCustomDate(dateString) {
     return new Date(isoDateString);
 }
 
-// Helper function to format the date as "YYYY-MM-DD HH:MM"
+// Helper function to format the date as "DD-MM-YYYY HH:MM"
 function formatDate(date){
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
