@@ -41,7 +41,7 @@ namespace GrandPrixLoginAPI
                     else
                     {
                         // Fallback to a default origin if the environment variable is not set
-                        policy.WithOrigins("https://gpgsl-boosts.vercel.app/", "http://localhost:3000");
+                        policy.WithOrigins("https://gpgsl-boosts.vercel.app", "http://localhost:3000");
                     }
                     policy.AllowAnyMethod();
                     policy.AllowAnyHeader();
