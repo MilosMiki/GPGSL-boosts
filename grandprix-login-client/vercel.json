@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://gpgsl-boosts.runasp.net/:path*"
+    }
+  ]
+}

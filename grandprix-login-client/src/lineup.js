@@ -394,16 +394,18 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                     </td>
                                     {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
                                                                                                       In practice, this means after I post with the GPGSL account.) */}
-                                    <td
-                                        style={{
-                                            textAlign: 'center'
-                                        }}
-                                    >
-                                        {warnings.some((warning) => warning.Username === team.username) ? 
-                                                totals.find(
-                                                (total) => total.Username === team.username
-                                                )?.Warnings ?? ""
-                                            : ""}
+                                    <td style={{ 
+                                        textAlign: 'center',
+                                        color: warnings.some(warning => warning.Username === team.username) ? 'red' : 'inherit'
+                                    }}>
+                                        {(() => {
+                                            const warningCount = totals.find(total => total.Username === team.username)?.Warnings;
+                                            if (warningCount === 0) return "";
+                                            if (warningCount === 1) return "10";
+                                            if (warningCount === 2) return "25";
+                                            if (warningCount >= 3) return "out";
+                                            return "";
+                                        })()}
                                     </td>
                                 </tr>
                                 {/* Driver Rows */}
@@ -419,16 +421,17 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                             {boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? "200" : "" || ""}</td>
                                             {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
                                                                                                       In practice, this means after I post with the GPGSL account.) */}
-                                            <td
-                                                style={{
-                                                    textAlign: 'center'
-                                                }}
-                                            >
-                                                {warnings.some((warning) => warning.Username === driver.username) ? 
-                                                        totals.find(
-                                                        (total) => total.Username === driver.username
-                                                        )?.Warnings ?? ""
-                                                 : ""}
+                                            <td style={{ 
+                                                textAlign: 'center',
+                                                color: warnings.some(warning => warning.Username === driver.username) ? 'red' : 'inherit'
+                                            }}>
+                                                {(() => {
+                                                    const warningCount = totals.find(total => total.Username === driver.username)?.Warnings;
+                                                    if (warningCount === 1) return "20";
+                                                    if (warningCount === 2) return "40";
+                                                    if (warningCount >= 3) return "out";
+                                                    return "";
+                                                })()}
                                             </td>
                                         </tr>
                                     ))}

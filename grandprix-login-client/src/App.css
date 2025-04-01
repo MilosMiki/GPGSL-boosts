@@ -3,7 +3,9 @@
   flex-direction: row; /* Ensures header is above sidebar/main-content */
   min-height: 100vh;
 }
-
+.credits{
+  font-size: 0.9em;
+}
 .sidebar-main-container {
   display: flex; /* Sidebar and main content appear side by side */
   flex-grow: 1;
