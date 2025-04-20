@@ -50,7 +50,7 @@ namespace GrandPrixLoginAPI
                             HttpOnly = true,       // Prevent JavaScript access (security)
                             Secure = true,         // Only send over HTTPS
                             Expires = DateTime.UtcNow.AddDays(60), // Persist for 7 days
-                            SameSite = SameSiteMode.Lax, // Helps prevent CSRF
+                            SameSite = SameSiteMode.None,
                             // Domain = "yourdomain.com" // Uncomment if needed
                         }
                     );
