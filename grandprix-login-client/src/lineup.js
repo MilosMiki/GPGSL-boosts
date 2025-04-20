@@ -29,6 +29,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
     useEffect(() => {
         // Step 1: Parse the JSON dump
         const divElements = htmlContent.split("</div>");
+        //console.log(divElements);
         const parsedData = divElements
             .map((div) => {
                 const jsonString = div.replace(/<div>/g, "").trim();
@@ -42,7 +43,10 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                 }
                 return null;
             })
-            .filter((data) => data !== null);
+            .filter((data) => data !== null)
+            .filter((data, index, self) => // remove duplicate 1st entry
+                index === self.findIndex((t) => (t && data && t.id === data.id))
+            );
 
         // Step 2: Reset duplicates for each team
         teams.forEach(team => {
@@ -59,6 +63,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
         const unmatchedBoosts = []; // For boosts that couldn't be matched
         const otherMessages = []; // For messages that are not boosts for this GP.
         const deadlineBoosts = []; // For messages that are after the deadline
+        console.log(parsedData);
         parsedData.forEach((data) => {
             const { title: rawTitle, sender, date: dataDate } = data;
 
@@ -627,13 +632,12 @@ function matchVenue(title, venueName, trackName, country){
     return title.includes(venueName) || title.includes(trackName) || title.includes(country)
 }
 
-function parseCustomDate(dateString) { 
+function parseCustomDate(dateString) {
     const nowSys = new Date();
     const now = new Date(nowSys.getUTCFullYear(), nowSys.getUTCMonth(), nowSys.getUTCDate(), nowSys.getUTCHours(), nowSys.getUTCMinutes(), nowSys.getUTCSeconds());
 
-
     // Handle relative time formats
-    const relativeMatch = dateString.match(/(\d+)\s+(minute|hour|week)s?\s+ago/i);
+    const relativeMatch = dateString.match(/(\d+)\s+(minute|hour|day|week)s?\s+ago/i);
     if (relativeMatch) {
         const amount = parseInt(relativeMatch[1], 10) + 1;
         const unit = relativeMatch[2];
@@ -642,6 +646,8 @@ function parseCustomDate(dateString) {
             now.setMinutes(now.getMinutes() - amount);
         } else if (unit === "hour") {
             now.setHours(now.getHours() - amount);
+        } else if (unit === "day") {
+            now.setDate(now.getDate() - amount);
         } else if (unit === "week") {
             now.setDate(now.getDate() - amount * 7);
         }
@@ -651,6 +657,12 @@ function parseCustomDate(dateString) {
     // Standard date-time format parsing
     // Split the date and time parts
     const [datePart, timePart] = dateString.split(" ");
+    if (!timePart) {
+        // Handle cases with only a date part (no time)
+        const [month, day, year] = datePart.split("/");
+        return new Date(`${year}-${month}-${day}T00:00:00Z`); // Assume UTC midnight
+    }
+
     const [month, day, year] = datePart.split("/");
     const [time, modifier] = timePart.split(/(?=[AP]M)/); // Split time and AM/PM
 
@@ -658,19 +670,19 @@ function parseCustomDate(dateString) {
     let [hours, minutes] = time.split(":");
 
     // Convert to 24-hour format
-    if (modifier === "PM" && hours !== "12") {
+    if (modifier && modifier.toUpperCase() === "PM" && hours !== "12") {
         hours = String(Number(hours) + 12);
     }
-    if (modifier === "AM" && hours === "12") {
+    if (modifier && modifier.toUpperCase() === "AM" && hours === "12") {
         hours = "00";
     }
 
-    // Create a new Date object in a format the constructor can understand
-    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:00`;
+    // Create a new Date object in UTC
+    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:00Z`;
     return new Date(isoDateString);
 }
 
-// Helper function to format the date as "DD-MM-YYYY HH:MM"
+// Helper function to format the date as "DD.MM.YYYY HH:MM"
 function formatDate(date){
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed

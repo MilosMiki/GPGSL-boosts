@@ -16,6 +16,93 @@ namespace GrandPrixLoginAPI
 {
     public class Program
     {
+        private static async Task<Microsoft.AspNetCore.Http.IResult> loadPms(HttpClient client, HttpContext context, CookieCollection cookies){
+            
+                var cookieList = new Dictionary<string, string>();
+                foreach (Cookie cookie in cookies)
+                {
+                    //Console.WriteLine("Found Cookie!");
+                    cookieList[cookie.Name] = cookie.Value;
+                }
+                //Console.WriteLine("User logged in successfully!");
+                var res = Results.Json(new { success = true, message = "Login successful", cookies = cookieList });
+                //Console.WriteLine(res);
+                //return res;
+                
+                // Step 7: Set headers for GET request
+                var user_agent = context.Request.Headers["User-Agent"].FirstOrDefault() ?? 
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+                var accept = context.Request.Headers["Accept"].FirstOrDefault() ?? 
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
+
+                var cookieName = "phorum_session_v5";
+                var cookieEdited = "";
+                if (cookieList.ContainsKey(cookieName))
+                {
+                    cookieEdited = $"phorum_session_v5={cookieList["phorum_session_v5"]}";
+                    
+                    // Set the cookie in the HTTP response to make it persistent
+                    context.Response.Cookies.Append(
+                        cookieName, 
+                        cookieList[cookieName],
+                        new CookieOptions
+                        {
+                            HttpOnly = true,       // Prevent JavaScript access (security)
+                            Secure = false,         // Only send over HTTPS
+                            Expires = DateTime.UtcNow.AddDays(60), // Persist for 7 days
+                            SameSite = SameSiteMode.Lax, // Helps prevent CSRF
+                            // Domain = "yourdomain.com" // Uncomment if needed
+                        }
+                    );
+                }
+                else
+                {
+                    cookieEdited = $"phorum_session_v5=deleted";
+                    Console.WriteLine("Warning: Cookie '{0}' not found. Setting its value to 'deleted'.", cookieName);
+                }
+                client.DefaultRequestHeaders.Add("User-Agent", user_agent);
+                client.DefaultRequestHeaders.Add("Accept", accept);
+                client.DefaultRequestHeaders.Add("Cookie", cookieEdited);
+
+                // Step 8: Fetch PMs page
+                try
+                {
+                    var responseGet = await client.GetAsync("https://www.grandprixgames.org/pm.php?4");
+                    
+                    if (!responseGet.IsSuccessStatusCode)
+                    {
+                        var resss = Results.Json(new 
+                        { 
+                            success = false, 
+                            message = $"Failed to fetch PM page. Status code: {(int)responseGet.StatusCode}" 
+                        }, statusCode: (int)responseGet.StatusCode);
+                        //Console.WriteLine(resss);
+                        return resss;
+                    }
+
+                    var htmlContent = await responseGet.Content.ReadAsStringAsync();
+
+                    // Parse HTML and extract structured data
+                    var messages = ParsePmPage(htmlContent);
+
+                    var resultObject = new { success = true, message = messages, cookies = cookieList };
+                    //Console.WriteLine(resultObject);
+                    var ress = Results.Json(resultObject);
+                    var jsonString = JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true });
+                    //Console.WriteLine(jsonString);
+                    return ress;
+                }
+                catch (Exception ex)
+                {
+                    var resss = Results.Json(new
+                    {
+                        success = false,
+                        message = $"An error occurred while fetching the PM page: {ex.Message}"
+                    }, statusCode: 500);
+                    //Console.WriteLine(resss);
+                    return resss;
+                }
+        }
         public static void Main(string[] args)
         {
             Env.Load();
@@ -59,6 +146,54 @@ namespace GrandPrixLoginAPI
             var app = builder.Build();
             // Add CORS middleware to your application
             app.UseCors("AllowLocalhost");
+
+            app.MapGet("/login/check-session", async (HttpContext context) =>
+            {
+                //Console.WriteLine("Finding auto-login");
+                // Check if the session cookie exists
+                var phorumSessionCookie = context.Request.Cookies["phorum_session_v5"];
+                if (string.IsNullOrEmpty(phorumSessionCookie))
+                {
+                    //Console.WriteLine("Did not find cookie :(");
+                    return Results.Json(new { success = false, message = "Did not find cookie." });
+                }
+
+                // Create cookie container and add our cookie
+                var cookieContainer = new CookieContainer();
+                var uri = new Uri("https://www.grandprixgames.org");
+                cookieContainer.Add(uri, new Cookie("phorum_session_v5", phorumSessionCookie));
+                
+                // Get the CookieCollection from the container
+                var cookieCollection = cookieContainer.GetCookies(uri);
+                //Console.WriteLine(cookieCollection);
+
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = cookieContainer,
+                    AllowAutoRedirect = true
+                };
+                
+                using var client = new HttpClient(handler);
+                
+                return await loadPms(client, context, cookieCollection);
+                /*
+                try
+                {
+                    var response = await client.GetAsync("https://www.grandprixgames.org/pm.php?4");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return Results.Json(new { success = false });
+                    }
+
+                    var htmlContent = await response.Content.ReadAsStringAsync();
+                    var messages = ParsePmPage(htmlContent);
+                    return Results.Json(new { success = true, message = messages, cookies = cookieContainer });
+                }
+                catch
+                {
+                    return Results.Json(new { success = false });
+                }*/
+            });
 
             app.MapPost("/login", async (HttpContext context) =>
             {
@@ -128,75 +263,8 @@ namespace GrandPrixLoginAPI
 
                 // Step 6: Retrieve cookies
                 var cookies = cookieContainer.GetCookies(new Uri(loginPostUrl));
-                var cookieList = new Dictionary<string, string>();
-                foreach (Cookie cookie in cookies)
-                {
-                    cookieList[cookie.Name] = cookie.Value;
-                }
-                //Console.WriteLine("User logged in successfully!");
-                var res = Results.Json(new { success = true, message = "Login successful", cookies = cookieList });
-                //Console.WriteLine(res);
-                //return res;
-                
-                // Step 7: Set headers for GET request
-                var user_agent = context.Request.Headers["User-Agent"].FirstOrDefault() ?? 
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
-                var accept = context.Request.Headers["Accept"].FirstOrDefault() ?? 
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
 
-                var cookieName = "phorum_session_v5";
-                var cookieEdited = "";
-                if (cookieList.ContainsKey(cookieName))
-                {
-                    cookieEdited = $"phorum_session_v5={cookieList["phorum_session_v5"]}";
-                }
-                else
-                {
-                    cookieEdited = $"phorum_session_v5=deleted";
-                    Console.WriteLine("Warning: Cookie '{0}' not found. Setting its value to 'deleted'.", cookieName);
-                }
-                client.DefaultRequestHeaders.Add("User-Agent", user_agent);
-                client.DefaultRequestHeaders.Add("Accept", accept);
-                client.DefaultRequestHeaders.Add("Cookie", cookieEdited);
-
-                // Step 8: Fetch PMs page
-                try
-                {
-                    var responseGet = await client.GetAsync("https://www.grandprixgames.org/pm.php?4");
-                    
-                    if (!responseGet.IsSuccessStatusCode)
-                    {
-                        var resss = Results.Json(new 
-                        { 
-                            success = false, 
-                            message = $"Failed to fetch PM page. Status code: {(int)responseGet.StatusCode}" 
-                        }, statusCode: (int)responseGet.StatusCode);
-                        //Console.WriteLine(resss);
-                        return resss;
-                    }
-
-                    var htmlContent = await responseGet.Content.ReadAsStringAsync();
-
-                    // Parse HTML and extract structured data
-                    var messages = ParsePmPage(htmlContent);
-
-                    var resultObject = new { success = true, message = messages, cookies = cookieList };
-                    //Console.WriteLine(resultObject);
-                    var ress = Results.Json(resultObject);
-                    var jsonString = JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true });
-                    //Console.WriteLine(jsonString);
-                    return ress;
-                }
-                catch (Exception ex)
-                {
-                    var resss = Results.Json(new
-                    {
-                        success = false,
-                        message = $"An error occurred while fetching the PM page: {ex.Message}"
-                    }, statusCode: 500);
-                    //Console.WriteLine(resss);
-                    return resss;
-                }
+                return await loadPms(client,context,cookies);
             });
 
             app.Run();
