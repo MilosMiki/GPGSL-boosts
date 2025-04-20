@@ -48,7 +48,7 @@ namespace GrandPrixLoginAPI
                         new CookieOptions
                         {
                             HttpOnly = true,       // Prevent JavaScript access (security)
-                            Secure = false,         // Only send over HTTPS
+                            Secure = true,         // Only send over HTTPS
                             Expires = DateTime.UtcNow.AddDays(60), // Persist for 7 days
                             SameSite = SameSiteMode.Lax, // Helps prevent CSRF
                             // Domain = "yourdomain.com" // Uncomment if needed
