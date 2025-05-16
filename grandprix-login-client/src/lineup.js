@@ -77,8 +77,8 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             //console.log(date);
             //console.log(parsedDate + " - " + lineupDateAt20);
 
-            const rawTitle2 = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
-            const title = rawTitle2.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, ''); // this regex trims non-letter characters at the start and end of the title (such as: " . ( ) etc.)
+            const title = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
+            const processedTitle = title.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, ''); // this regex trims non-letter characters at the start and end of the title (such as: " . ( ) etc.)
             var isDriverBoost = /driver boost/i.test(title); // Case insensitive check
             var isTeamBoost = /team boost/i.test(title); // Case insensitive check
             const isAnyBoost = /boost/i.test(title); // Case insensitive check
@@ -99,7 +99,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                 if (isDriverBoost) {
                     // Extract driver name/username and venue from title (with optional parentheses)
                     const [, nameOrUsername, venue] =
-                        title.match(/^(?:(?:Driver\s+)?Boost)\s*-\s*\(?([^(]+?)\s*(?:\([^)]*\))?\s*-\s*(\(?.+?\)?)\s*[-,]?\s*$/i) || [];
+                        processedTitle.match(/^(?:(?:Driver\s+)?Boost)\s*-\s*\(?([^(]+?)\s*(?:\([^)]*\))?\s*-\s*(\(?.+?\)?)\s*[-,]?\s*$/i) || [];
                     if (nameOrUsername && findVenue) {
                         // Remove parentheses from name/username if present
                         const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
@@ -144,7 +144,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                     // Extract team name, venue, and boost type from title (flexible delimiters and optional parentheses)
                     const [, name, venue, boostType] =
                         //title.match(/"?Team Boost - (\(?.+?\)?) - (\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double|)\)?"?/i) || [];
-                        title.match(/"?(?:(?:Team\s+)?Boost)\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
+                        processedTitle.match(/"?(?:(?:Team\s+)?Boost)\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
                     if (name && findVenue) {
                         // Remove parentheses from name if present
                         const cleanedName = name.replace(/[()]/g, "");
