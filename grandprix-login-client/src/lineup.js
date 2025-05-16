@@ -77,8 +77,15 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             //console.log(parsedDate + " - " + lineupDateAt20);
 
             const title = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
-            const isDriverBoost = /driver boost/i.test(title); // Case insensitive check
-            const isTeamBoost = /team boost/i.test(title); // Case insensitive check
+            var isDriverBoost = /driver boost/i.test(title); // Case insensitive check
+            var isTeamBoost = /team boost/i.test(title); // Case insensitive check
+            const isAnyBoost = /boost/i.test(title); // Case insensitive check
+            if(isAnyBoost && !(isDriverBoost || isTeamBoost)){
+                if(containsTeamBoost(title))
+                    isTeamBoost = true;
+                else
+                    isDriverBoost = true;
+            }
             const findVenue = matchVenue(title, venueName, trackName, country);
 
             // Compare the dates
@@ -90,7 +97,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                 if (isDriverBoost) {
                     // Extract driver name/username and venue from title (with optional parentheses)
                     const [, nameOrUsername, venue] =
-                        title.match(/"?Driver Boost - \(?([^(]+?)\s*(?:\([^)]*\))? - (\(?.+?\)?)\s*[-,]\s*/i) || [];
+                        title.match(/^(?:(?:Driver\s+)?Boost)\s*-\s*\(?([^(]+?)\s*(?:\([^)]*\))?\s*-\s*(\(?.+?\)?)\s*[-,]?\s*$/i) || [];
                     if (nameOrUsername && findVenue) {
                         // Remove parentheses from name/username if present
                         const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
@@ -105,6 +112,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 matched = true;
                                 const existingBoost = newBoosts.find((b) => b.id === driver.id);
                                 if (existingBoost) {
+                                    console.log("Found duplicate boost for driver: " + driver.name);
                                     driver.duplicate = true; // Mark as duplicate
                                 } else {
                                     newBoosts.push({ id: driver.id, boosted: 1 }); // Single boost for drivers
@@ -112,6 +120,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 }
                             }
                             else{
+                                console.log("Boost for driver: " + driver.username + " unmatched because username is: " + sender);
                                 matched = false; //this means somebody else sent in the driver boost
                             }
                         }
@@ -130,7 +139,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                     // Extract team name, venue, and boost type from title (flexible delimiters and optional parentheses)
                     const [, name, venue, boostType] =
                         //title.match(/"?Team Boost - (\(?.+?\)?) - (\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double|)\)?"?/i) || [];
-                        title.match(/"?Team Boost\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
+                        title.match(/"?(?:(?:Team\s+)?Boost)\s*[-,]\s*(\(?.+?\)?)\s*[-,]\s*(\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double)\)?"?/i) || [];
                     if (name && findVenue) {
                         // Remove parentheses from name if present
                         const cleanedName = name.replace(/[()]/g, "");
@@ -157,6 +166,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 matched = true;
                                 const existingBoost = newBoosts.find((b) => b.id === team.id);
                                 if (existingBoost) {
+                                    console.log("Found duplicate boost for team: " + team.name);
                                     team.duplicate = true; // Mark as duplicate
                                 } else {    
                                     newBoosts.push({ id: team.id, boosted });
@@ -164,6 +174,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 }
                             }
                             else{
+                                console.log("Boost for team: " + team.username + " unmatched because username is: " + sender);
                                 matched = false; //this means somebody else sent in the team boost
                             }
                         }
@@ -630,6 +641,26 @@ function decodeHTMLEntities(text) {
 
 function matchVenue(title, venueName, trackName, country){
     return title.includes(venueName) || title.includes(trackName) || title.includes(country)
+}
+
+function containsTeamBoost(title){
+    // Handle cases where title is null, undefined, or not a string
+    if (typeof title !== 'string' || title.length === 0) {
+      return false;
+    }
+  
+    // Split the title by the '-' delimiter
+    const parts = title.split('-');
+  
+    // Get the last part of the split array
+    // If there's no '-', parts will be an array with the original title as the only element
+    const lastPart = parts[parts.length - 1];
+  
+    // Convert the last part to lowercase for case-insensitive comparison
+    const lowerLastPart = lastPart.toLowerCase();
+  
+    // Check if the lowercase last part includes "single" or "double"
+    return lowerLastPart.includes("single") || lowerLastPart.includes("double");
 }
 
 function parseCustomDate(dateString) {
