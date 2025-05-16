@@ -69,6 +69,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
 
             // Create a Date object for the parsed data's date
             const parsedDate = parseCustomDate(dataDate);
+            //console.log(parsedDate);
             //console.log(dataDate + " - " + parsedDate);
             // Create a Date object for the Lineup date at 20:00 hours
             const lineupDateAt20 = new Date(date);
@@ -76,7 +77,8 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             //console.log(date);
             //console.log(parsedDate + " - " + lineupDateAt20);
 
-            const title = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
+            const rawTitle2 = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
+            const title = rawTitle2.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, ''); // this regex trims non-letter characters at the start and end of the title (such as: " . ( ) etc.)
             var isDriverBoost = /driver boost/i.test(title); // Case insensitive check
             var isTeamBoost = /team boost/i.test(title); // Case insensitive check
             const isAnyBoost = /boost/i.test(title); // Case insensitive check
@@ -123,6 +125,9 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                 console.log("Boost for driver: " + driver.username + " unmatched because username is: " + sender);
                                 matched = false; //this means somebody else sent in the driver boost
                             }
+                        }
+                        else{
+                            console.log("Boost unmatched for user: " + cleanedNameOrUsername + " because he is not a driver.");
                         }
                     }
                     if(!matched)
@@ -673,34 +678,40 @@ function parseCustomDate(dateString) {
         const amount = parseInt(relativeMatch[1], 10) + 1;
         const unit = relativeMatch[2];
 
-        if (unit === "minute") {
-            now.setMinutes(now.getMinutes() - amount);
-        } else if (unit === "hour") {
-            now.setHours(now.getHours() - amount);
-        } else if (unit === "day") {
-            now.setDate(now.getDate() - amount);
-        } else if (unit === "week") {
-            now.setDate(now.getDate() - amount * 7);
-        }
-        return now; // Return the adjusted Date object
+        if (unit === "minute") now.setMinutes(now.getMinutes() - amount);
+        else if (unit === "hour") now.setHours(now.getHours() - amount);
+        else if (unit === "day") now.setDate(now.getDate() - amount);
+        else if (unit === "week") now.setDate(now.getDate() - amount * 7);
+
+        return now;
     }
 
-    // Standard date-time format parsing
-    // Split the date and time parts
+    // Handle "yesterday, hh:mmPM" format
+    const yesterdayMatch = dateString.match(/^yesterday,\s*(\d{1,2}):(\d{2})(AM|PM)$/i);
+    if (yesterdayMatch) {
+        let [ , hours, minutes, modifier ] = yesterdayMatch;
+        hours = parseInt(hours, 10);
+        minutes = parseInt(minutes, 10);
+        modifier = modifier.toUpperCase();
+
+        if (modifier === "PM" && hours !== 12) hours += 12;
+        if (modifier === "AM" && hours === 12) hours = 0;
+
+        const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, hours, minutes, 0));
+        return yesterday;
+    }
+
+    // Handle MM/DD/YYYY or MM/DD/YYYY HH:MMAM/PM
     const [datePart, timePart] = dateString.split(" ");
     if (!timePart) {
-        // Handle cases with only a date part (no time)
         const [month, day, year] = datePart.split("/");
-        return new Date(`${year}-${month}-${day}T00:00:00Z`); // Assume UTC midnight
+        return new Date(`${year}-${month}-${day}T00:00:00Z`);
     }
 
     const [month, day, year] = datePart.split("/");
-    const [time, modifier] = timePart.split(/(?=[AP]M)/); // Split time and AM/PM
+    const [time, modifier] = timePart.split(/(?=[AP]M)/);
 
-    // Split hours and minutes
     let [hours, minutes] = time.split(":");
-
-    // Convert to 24-hour format
     if (modifier && modifier.toUpperCase() === "PM" && hours !== "12") {
         hours = String(Number(hours) + 12);
     }
@@ -708,20 +719,20 @@ function parseCustomDate(dateString) {
         hours = "00";
     }
 
-    // Create a new Date object in UTC
     const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:00Z`;
+    //console.log(isoDateString);
     return new Date(isoDateString);
 }
 
-// Helper function to format the date as "DD.MM.YYYY HH:MM"
-function formatDate(date){
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+// Helper function to format the date as "DD.MM.YYYY HH:MM" in GMT/UTC
+function formatDate(date) {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     return `${day}.${month}.${year} ${hours}:${minutes}`;
-    //return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 export default Lineup;

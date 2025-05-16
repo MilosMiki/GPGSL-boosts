@@ -48,7 +48,7 @@ function App() {
             <div className="sidebar">
                 <CalendarApp selectedId={selectedId} setSelectedId={setSelectedId} setVenueName={setVenueName} setTrackName={setTrackName} setCountry={setCountry} />
                 <div className="credits">
-                    App version 0.2.3<br />
+                    App version 0.2.4<br />
                     Contact: <a href="mailto:milos.ancevski@student.um.si">milos.ancevski@student.um.si</a><br />
                     GitHub: <a href="https://github.com/MilosMiki/GPGSL-boosts" target="_blank" rel="noopener noreferrer">MilosMiki/GPGSL-boosts</a>
                 </div>
