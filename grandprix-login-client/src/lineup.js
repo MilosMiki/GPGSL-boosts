@@ -145,9 +145,15 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
                                     d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
                                     d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
                             );
-                            isDriverInTitle = (driver.username === sender && !wrongUsername) || (wrongUsername && driver.username === cookies.username && sender === "GPGSL"); 
-                            // check whether the driver name matches the sender
-                            // added check: if not logged in as GPGSL, check if user has sent the boost correctly (sender becomes receiver)
+                            if(driver)
+                            {
+                                isDriverInTitle = (driver.username === sender && !wrongUsername) || (wrongUsername && driver.username === cookies.username && sender === "GPGSL"); 
+                                // check whether the driver name matches the sender
+                                // added check: if not logged in as GPGSL, check if user has sent the boost correctly (sender becomes receiver)
+                            }
+                            else{
+                                isDriverInTitle = false;
+                            }
                         }
                         
                         if (driver) {
