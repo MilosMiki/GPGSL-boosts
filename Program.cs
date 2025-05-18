@@ -17,8 +17,9 @@ namespace GrandPrixLoginAPI
     public class Program
     {
         public static string globalMessageBody = "";
-        private static async Task<Microsoft.AspNetCore.Http.IResult> loadPms(HttpClient client, HttpContext context, CookieCollection cookies, string targetUrl = "https://www.grandprixgames.org/pm.php?4"){
-            
+        private static async Task<Microsoft.AspNetCore.Http.IResult> loadPms(HttpClient client, HttpContext context, CookieCollection cookies, string targetUrl = "https://www.grandprixgames.org/pm.php?4")
+        {
+
             var cookieList = new Dictionary<string, string>();
             foreach (Cookie cookie in cookies)
             {
@@ -29,11 +30,11 @@ namespace GrandPrixLoginAPI
             var res = Results.Json(new { success = true, message = "Login successful", cookies = cookieList });
             //Console.WriteLine(res);
             //return res;
-            
+
             // Step 7: Set headers for GET request
-            var user_agent = context.Request.Headers["User-Agent"].FirstOrDefault() ?? 
+            var user_agent = context.Request.Headers["User-Agent"].FirstOrDefault() ??
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
-            var accept = context.Request.Headers["Accept"].FirstOrDefault() ?? 
+            var accept = context.Request.Headers["Accept"].FirstOrDefault() ??
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
 
             var cookieName = "phorum_session_v5";
@@ -41,10 +42,10 @@ namespace GrandPrixLoginAPI
             if (cookieList.ContainsKey(cookieName))
             {
                 cookieEdited = $"phorum_session_v5={cookieList["phorum_session_v5"]}";
-                
+
                 // Set the cookie in the HTTP response to make it persistent
                 context.Response.Cookies.Append(
-                    cookieName, 
+                    cookieName,
                     cookieList[cookieName],
                     new CookieOptions
                     {
@@ -69,13 +70,13 @@ namespace GrandPrixLoginAPI
             try
             {
                 var responseGet = await client.GetAsync(targetUrl);
-                
+
                 if (!responseGet.IsSuccessStatusCode)
                 {
-                    var resss = Results.Json(new 
-                    { 
-                        success = false, 
-                        message = $"Failed to fetch PM page. Status code: {(int)responseGet.StatusCode}" 
+                    var resss = Results.Json(new
+                    {
+                        success = false,
+                        message = $"Failed to fetch PM page. Status code: {(int)responseGet.StatusCode}"
                     }, statusCode: (int)responseGet.StatusCode);
                     //Console.WriteLine(resss);
                     return resss;
@@ -86,12 +87,15 @@ namespace GrandPrixLoginAPI
                 // Parse HTML and extract structured data
                 if (targetUrl != "https://www.grandprixgames.org/pm.php?4")
                 {
-                    var messages = htmlContent;
                     globalMessageBody = htmlContent; // using this to avoid changing return type of function (don't like it very much)
-                    var resultObject = new { success = true, message = messages, cookies = cookieList };
+                    //Console.WriteLine(htmlContent);
+                    return null;
+                    //return Results.Text(htmlContent); // just raw string content
+
+                    var resultObject = new { success = true, message = htmlContent };
                     //Console.WriteLine(resultObject);
                     var ress = Results.Json(resultObject);
-                    var jsonString = JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true });
+                    // var jsonString = JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true });
                     //Console.WriteLine(jsonString);
                     return ress;
 
@@ -300,31 +304,23 @@ namespace GrandPrixLoginAPI
                 if (checkboxNode != null && linkNode != null && senderNode != null && dateNode != null)
                 {
                     var messageId = checkboxNode.GetAttributeValue("value", "");
-                    var messageTitle = linkNode.InnerText.Trim();
-                    // load message body (very slow)
-                    var bodyContent = "";
-                    if (!string.IsNullOrEmpty(messageTitle) &&
-                        messageTitle.IndexOf("boost", StringComparison.OrdinalIgnoreCase) >= 0 && // is a boost
-                        messageTitle.IndexOf("single", StringComparison.OrdinalIgnoreCase) == -1 &&
-                        messageTitle.IndexOf("double", StringComparison.OrdinalIgnoreCase) == -1 &&
-                        messageTitle.IndexOf("driver", StringComparison.OrdinalIgnoreCase) == -1) // is not a driver boost
-                    {
-                        await loadPms(client, context, cookies, "https://www.grandprixgames.org/pm.php?4,page=read,folder_id=inbox,pm_id=" + messageId);
-                        var messageDoc = new HtmlDocument();
-                        messageDoc.LoadHtml(globalMessageBody);
-                        var messageBodyNode = messageDoc.DocumentNode.SelectSingleNode("//div[@class='message-body']");
-                        //var foundIdNode = doc.DocumentNode.SelectSingleNode("//input[@name='pm_id']");
-                        //string foundId = foundIdNode.GetAttributeValue("value", "");
-                        bodyContent = messageBodyNode?.InnerText.Trim() ?? string.Empty;
-                    }
+                    var messageContent = await loadPms(client,context,cookies, "https://www.grandprixgames.org/pm.php?4,page=read,folder_id=inbox,pm_id=" + messageId);
 
+                    // Parse the message content to extract the body
+                    var messageDoc = new HtmlDocument();
+                    messageDoc.LoadHtml(globalMessageBody);
+                    var messageBodyNode = messageDoc.DocumentNode.SelectSingleNode("//div[@class='message-body']");
+                    var foundIdNode = doc.DocumentNode.SelectSingleNode("//input[@name='pm_id']");
+                    string foundId = foundIdNode.GetAttributeValue("value", "");
+                    var bodyContent = messageBodyNode?.InnerText.Trim() ?? string.Empty;
+                    Console.WriteLine(bodyContent);
                     messages.Add(new Message
                     {
-                        Id = messageId,
-                        Title = messageTitle,
+                        Id = checkboxNode.GetAttributeValue("value", ""),
+                        Title = linkNode.InnerText.Trim(),
                         Sender = senderNode.InnerText.Trim(),
                         Date = dateNode.InnerText.Trim(),
-                        Body = bodyContent
+                        Body = foundId == messageId ? bodyContent : "Error: MessageID mismatch."
                     });
                 }
             }

@@ -65,7 +65,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
         const deadlineBoosts = []; // For messages that are after the deadline
         console.log(parsedData);
         parsedData.forEach((data) => {
-            const { title: rawTitle, sender, date: dataDate } = data;
+            const { title: rawTitle, sender, date: dataDate, body } = data;
 
             // Create a Date object for the parsed data's date
             const parsedDate = parseCustomDate(dataDate);
@@ -78,7 +78,15 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             //console.log(parsedDate + " - " + lineupDateAt20);
 
             const title = decodeHTMLEntities(rawTitle); // Decode HTML entities in the title
-            const processedTitle = title.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, ''); // this regex trims non-letter characters at the start and end of the title (such as: " . ( ) etc.)
+            var processedTitle = title.replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, ''); 
+            // this regex trims non-letter characters at the start and end of the title (such as: " . ( ) etc.)
+            
+            processedTitle = processedTitle.replace(
+                /^(Driver|Team)\s+Boost(?!\s*[-–—])\s*/i,
+                (match) => match.trim() + ' - '
+            );
+            // this regex will force a delimiter between "Boost" and the next letter (usually driver or team name)
+
             var isDriverBoost = /driver boost/i.test(title); // Case insensitive check
             var isTeamBoost = /team boost/i.test(title); // Case insensitive check
             const isAnyBoost = /boost/i.test(title); // Case insensitive check
@@ -92,7 +100,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
 
             // Compare the dates
             if (parsedDate > lineupDateAt20) {
-                deadlineBoosts.push({ title, sender, date: formatDate(parsedDate) });
+                deadlineBoosts.push({ title, sender, date: formatDate(parsedDate), body });
             }
             else{
                 let matched = false;
@@ -134,13 +142,21 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                     {
                         if (findVenue) {
                             // If the boost message contains venueName and it wasnt matched
-                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate) });
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body });
                         }
                         else{
-                            otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                            otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
                         }
                     }
                 } else if (isTeamBoost) {
+                    // this if block will append single/double boost from message body, if not present in title.
+                    if(!containsTeamBoost(processedTitle)){
+                        if (/single/i.test(body)) {
+                            processedTitle += " - single";
+                        } else if (/double/i.test(body)) {
+                            processedTitle += " - double";
+                        }
+                    }
                     // Extract team name, venue, and boost type from title (flexible delimiters and optional parentheses)
                     const [, name, venue, boostType] =
                         //title.match(/"?Team Boost - (\(?.+?\)?) - (\(?.+?\)?)\s*(?:[-,].+?)?\s*\(?(Single|Double|)\)?"?/i) || [];
@@ -188,16 +204,16 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                     {
                         if (findVenue) {
                             // If the boost message contains venueName and it wasnt matched
-                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate) });
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body });
                         }
                         else{
-                            otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                            otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
                         }
                     }
                 }
                 else {
                     // If the message contains venueName but is not a boost, add it to otherMessages
-                    otherMessages.push({ title, sender, date: formatDate(parsedDate) });
+                    otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
                 }
             }
         });
@@ -569,7 +585,10 @@ function DeadlineBoostsTable({ boosts }) {
                     {boosts.map((boost, index) => (
                         <tr key={index}>
                             <td>{boost.sender}</td>
-                            <td>{boost.title}</td>
+                            <td>
+                                <div>{boost.title}</div>
+                                <div style={{ fontSize: '0.8em', color: '#666' }}>{boost.body}</div>
+                            </td>
                             <td className="deadline-date">{boost.date}</td> {/* Display the date */}
                         </tr>
                     ))}
@@ -599,7 +618,10 @@ function UnmatchedBoostsTable({ boosts }) {
                     {boosts.map((boost, index) => (
                         <tr key={index}>
                             <td>{boost.sender}</td>
-                            <td>{boost.title}</td>
+                            <td>
+                                <div>{boost.title}</div>
+                                <div style={{ fontSize: '0.8em', color: '#666' }}>{boost.body}</div>
+                            </td>
                             <td className="unmatched-date">{boost.date}</td> {/* Display the date */}
                         </tr>
                     ))}
@@ -629,7 +651,10 @@ function OtherMessagesTable({ messages }) {
                     {messages.map((message, index) => (
                         <tr key={index}>
                             <td>{message.sender}</td>
-                            <td>{message.title}</td>
+                            <td>
+                                <div>{message.title}</div>
+                                <div style={{ fontSize: '0.8em', color: '#666' }}>{message.body}</div>
+                            </td>
                             <td className="unmatched-date"  >{message.date}</td> {/* Display the date */}
                         </tr>
                     ))}
@@ -669,36 +694,57 @@ function containsTeamBoost(title){
 }
 
 function parseCustomDate(dateString) {
-    const nowSys = new Date();
-    const now = new Date(nowSys.getUTCFullYear(), nowSys.getUTCMonth(), nowSys.getUTCDate(), nowSys.getUTCHours(), nowSys.getUTCMinutes(), nowSys.getUTCSeconds());
+    const now = new Date();
+    const nowUTC = new Date(Date.UTC(
+        now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+        now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()
+    ));
 
-    // Handle relative time formats
+    // Relative time (e.g., "3 hours ago")
     const relativeMatch = dateString.match(/(\d+)\s+(minute|hour|day|week)s?\s+ago/i);
     if (relativeMatch) {
-        const amount = parseInt(relativeMatch[1], 10) + 1;
+        const amount = parseInt(relativeMatch[1], 10);
         const unit = relativeMatch[2];
+        const adjusted = new Date(nowUTC);
 
-        if (unit === "minute") now.setMinutes(now.getMinutes() - amount);
-        else if (unit === "hour") now.setHours(now.getHours() - amount);
-        else if (unit === "day") now.setDate(now.getDate() - amount);
-        else if (unit === "week") now.setDate(now.getDate() - amount * 7);
+        if (unit === "minute") adjusted.setUTCMinutes(adjusted.getUTCMinutes() - amount);
+        else if (unit === "hour") adjusted.setUTCHours(adjusted.getUTCHours() - amount);
+        else if (unit === "day") adjusted.setUTCDate(adjusted.getUTCDate() - amount);
+        else if (unit === "week") adjusted.setUTCDate(adjusted.getUTCDate() - amount * 7);
 
-        return now;
+        return adjusted;
     }
 
-    // Handle "yesterday, hh:mmPM" format
-    const yesterdayMatch = dateString.match(/^yesterday,\s*(\d{1,2}):(\d{2})(AM|PM)$/i);
-    if (yesterdayMatch) {
-        let [ , hours, minutes, modifier ] = yesterdayMatch;
-        hours = parseInt(hours, 10);
-        minutes = parseInt(minutes, 10);
-        modifier = modifier.toUpperCase();
+    // Handle "today, 10:38PM" or "yesterday, 10:38PM"
+    const dayMatch = dateString.match(/^(today|yesterday),\s*(\d{1,2}):(\d{2})(AM|PM)$/i);
+    if (dayMatch) {
+        const [, label, rawHour, rawMinute, ampm] = dayMatch;
+        let hours = parseInt(rawHour, 10);
+        const minutes = parseInt(rawMinute, 10);
+        const modifier = ampm.toUpperCase();
 
         if (modifier === "PM" && hours !== 12) hours += 12;
         if (modifier === "AM" && hours === 12) hours = 0;
 
-        const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, hours, minutes, 0));
-        return yesterday;
+        // Create candidate datetime for "today" with target time
+        const candidate = new Date(Date.UTC(
+            nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate(),
+            hours, minutes, 0
+        ));
+
+        if (label.toLowerCase() === "today") {
+            return candidate;
+        }
+
+        // For "yesterday", determine whether to subtract 1 or 2 days
+        if (nowUTC < candidate) {
+            // If now is before 10:38PM, then "yesterday at 10:38PM" is actually two days ago
+            candidate.setUTCDate(candidate.getUTCDate() - 2);
+        } else {
+            candidate.setUTCDate(candidate.getUTCDate() - 1);
+        }
+
+        return candidate;
     }
 
     // Handle MM/DD/YYYY or MM/DD/YYYY HH:MMAM/PM
@@ -710,19 +756,16 @@ function parseCustomDate(dateString) {
 
     const [month, day, year] = datePart.split("/");
     const [time, modifier] = timePart.split(/(?=[AP]M)/);
+    let [hours, minutes] = time.split(":").map(n => parseInt(n, 10));
 
-    let [hours, minutes] = time.split(":");
-    if (modifier && modifier.toUpperCase() === "PM" && hours !== "12") {
-        hours = String(Number(hours) + 12);
-    }
-    if (modifier && modifier.toUpperCase() === "AM" && hours === "12") {
-        hours = "00";
-    }
+    const upperMod = modifier.toUpperCase();
+    if (upperMod === "PM" && hours !== 12) hours += 12;
+    if (upperMod === "AM" && hours === 12) hours = 0;
 
-    const isoDateString = `${year}-${month}-${day}T${hours}:${minutes}:00Z`;
-    //console.log(isoDateString);
-    return new Date(isoDateString);
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
 }
+
+
 
 
 // Helper function to format the date as "DD.MM.YYYY HH:MM" in GMT/UTC
