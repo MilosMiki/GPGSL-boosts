@@ -104,21 +104,36 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
             }
             else{
                 let matched = false;
+                let message = "";
                 if (isDriverBoost) {
                     // Extract driver name/username and venue from title (with optional parentheses)
                     const [, nameOrUsername, venue] =
                         processedTitle.match(/^(?:(?:Driver\s+)?Boost)\s*-\s*\(?([^(]+?)\s*(?:\([^)]*\))?\s*-\s*(\(?.+?\)?)\s*[-,]?\s*$/i) || [];
-                    if (nameOrUsername && findVenue) {
-                        // Remove parentheses from name/username if present
-                        const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
-                        // Find matching driver by name OR username (case insensitive)
-                        const driver = drivers.find(
-                            (d) =>
-                                d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
-                                d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
-                        );
+                    if(findVenue){
+                        var driver;
+                        var isDriverInTitle = false;
+                        if(!nameOrUsername){ //2nd pass, match for sender, if driver name is found anywhere in message
+                            driver = drivers.find(
+                                (d) =>
+                                    d.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0
+                            );
+                            isDriverInTitle = new RegExp(driver.name, "i").test(title); // must check if driver name
+                        }
+                        else{ // if the title formatting is correct
+
+                            // Remove parentheses from name/username if present
+                            const cleanedNameOrUsername = nameOrUsername.replace(/[()]/g, "");
+                            // Find matching driver by name OR username (case insensitive)
+                            driver = drivers.find(
+                                (d) =>
+                                    d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
+                                    d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
+                            );
+                            isDriverInTitle = driver.username === sender; // check whether the driver name matches the sender
+                        }
+                        
                         if (driver) {
-                            if (driver.username === sender) {
+                            if (isDriverInTitle) {
                                 matched = true;
                                 const existingBoost = newBoosts.find((b) => b.id === driver.id);
                                 if (existingBoost) {
@@ -132,17 +147,20 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                             else{
                                 console.log("Boost for driver: " + driver.username + " unmatched because username is: " + sender);
                                 matched = false; //this means somebody else sent in the driver boost
+                                message = "Error: incorrect username for driver.";
                             }
                         }
                         else{
-                            console.log("Boost unmatched for user: " + cleanedNameOrUsername + " because he is not a driver.");
+                            console.log("Boost unmatched for user: " + nameOrUsername + " because he is not a driver.");
+                            message = "Error: Driver not found.";
                         }
                     }
                     if(!matched)
                     {
                         if (findVenue) {
                             // If the boost message contains venueName and it wasnt matched
-                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body });
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body, message});
+                            console.log("Unmatched for sender: " + sender + " and name: " + nameOrUsername + " and driver: " + driver);
                         }
                         else{
                             otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
@@ -174,15 +192,15 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                         
                             // Check if short2 matches, only if short2 exists and is not empty
                             const short2Matches = t.short2 && t.short2.localeCompare(cleanedName, undefined, { sensitivity: 'base' }) === 0;
-                        
+                            /*
                             // Check if the username matches (case-insensitive)
                             const usernameMatches = t.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0;
-                        
+                            */
                             // Return true if either name, short1, or short2 matches, AND the username matches
-                            return (nameMatches || short1Matches || short2Matches) && usernameMatches;
+                            return (nameMatches || short1Matches || short2Matches);// && usernameMatches;
                         });
-                        if (team) {
-                            if (team.username === sender) {
+                        if (team) { // if the team from the title was found
+                            if (team.username === sender) { // only here check if the sender is correct
                                 const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
                                 matched = true;
                                 const existingBoost = newBoosts.find((b) => b.id === team.id);
@@ -197,14 +215,19 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                             else{
                                 console.log("Boost for team: " + team.username + " unmatched because username is: " + sender);
                                 matched = false; //this means somebody else sent in the team boost
+                                message = "Error: incorrect username for team owner.";
                             }
+                        }
+                        else{
+                            console.log("Boost unmatched for user: " + sender + " because the team is not found.");
+                            message = "Error: Team not found.";
                         }
                     }
                     if(!matched)
                     {
                         if (findVenue) {
                             // If the boost message contains venueName and it wasnt matched
-                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body });
+                            unmatchedBoosts.push({ title, sender, date: formatDate(parsedDate), body, message });
                         }
                         else{
                             otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
@@ -621,6 +644,7 @@ function UnmatchedBoostsTable({ boosts }) {
                             <td>
                                 <div>{boost.title}</div>
                                 <div style={{ fontSize: '0.8em', color: '#666' }}>{boost.body}</div>
+                                <div style={{ fontSize: '0.8em', color: '#666' }}>{boost.message}</div>
                             </td>
                             <td className="unmatched-date">{boost.date}</td> {/* Display the date */}
                         </tr>
