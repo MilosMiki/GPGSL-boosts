@@ -17,7 +17,7 @@ namespace GrandPrixLoginAPI
     public class Program
     {
         public static string globalMessageBody = "";
-        private static async Task<Microsoft.AspNetCore.Http.IResult> loadPms(HttpClient client, HttpContext context, CookieCollection cookies, string targetUrl = "https://www.grandprixgames.org/pm.php?4"){
+        private static async Task<Microsoft.AspNetCore.Http.IResult> loadPms(HttpClient client, HttpContext context, CookieCollection cookies, string targetUrl = "https://www.grandprixgames.org/pm.php?4", string username="GPGSL"){
             
             var cookieList = new Dictionary<string, string>();
             foreach (Cookie cookie in cookies)
@@ -84,7 +84,8 @@ namespace GrandPrixLoginAPI
                 var htmlContent = await responseGet.Content.ReadAsStringAsync();
 
                 // Parse HTML and extract structured data
-                if (targetUrl != "https://www.grandprixgames.org/pm.php?4")
+                if (targetUrl != "https://www.grandprixgames.org/pm.php?4" && targetUrl != "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox")
+                // if it is neither the inbox page or the "Sent" page
                 {
                     var messages = htmlContent;
                     globalMessageBody = htmlContent; // using this to avoid changing return type of function (don't like it very much)
@@ -98,7 +99,7 @@ namespace GrandPrixLoginAPI
                 }
                 else
                 {
-                    var messages = await ParsePmPage(htmlContent, client, context, cookies);
+                    var messages = await ParsePmPage(htmlContent, client, context, cookies, username);
                     var resultObject = new { success = true, message = messages, cookies = cookieList };
                     //Console.WriteLine(resultObject);
                     var ress = Results.Json(resultObject);
@@ -189,8 +190,17 @@ namespace GrandPrixLoginAPI
                 };
                 
                 using var client = new HttpClient(handler);
+                var username = context.Request.Headers["X-Username"].FirstOrDefault();
+                //Console.WriteLine("Username is: "+username);
                 
-                return await loadPms(client, context, cookieCollection);
+                if (username == "GPGSL")
+                {
+                    return await loadPms(client, context, cookieCollection, "https://www.grandprixgames.org/pm.php?4", "GPGSL");
+                }
+                else
+                {
+                    return await loadPms(client, context, cookieCollection, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", username);
+                }
                 /*
                 try
                 {
@@ -279,12 +289,19 @@ namespace GrandPrixLoginAPI
                 // Step 6: Retrieve cookies
                 var cookies = cookieContainer.GetCookies(new Uri(loginPostUrl));
 
-                return await loadPms(client,context,cookies);
+                if (requestBody.Username == "GPGSL")
+                {
+                    return await loadPms(client, context, cookies, "https://www.grandprixgames.org/pm.php?4", "GPGSL");
+                }
+                else
+                {
+                    return await loadPms(client, context, cookies, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", requestBody.Username);
+                }
             });
 
             app.Run();
         }
-        private static async Task<List<Message>> ParsePmPage(string html, HttpClient client, HttpContext context, CookieCollection cookies)
+        private static async Task<List<Message>> ParsePmPage(string html, HttpClient client, HttpContext context, CookieCollection cookies, string username = "GPGSL")
         {
             var messages = new List<Message>();
             var doc = new HtmlDocument();
@@ -295,7 +312,8 @@ namespace GrandPrixLoginAPI
                 var checkboxNode = row.SelectSingleNode(".//input[@type='checkbox']");
                 var linkNode = row.SelectSingleNode(".//td[2]/a");
                 var senderNode = row.SelectSingleNode(".//td[3]/a");
-                var dateNode = row.SelectSingleNode(".//td[4]");
+                var dateNode = username == "GPGSL" ? row.SelectSingleNode(".//td[4]") : row.SelectSingleNode(".//td[5]");
+                //Console.WriteLine(row.SelectSingleNode(".//td[5]").InnerText.Trim());
 
                 if (checkboxNode != null && linkNode != null && senderNode != null && dateNode != null)
                 {

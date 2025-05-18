@@ -3,9 +3,11 @@ import { db } from "./firebase";
 import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
 import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave } from 'react-icons/fa';
 import './CalendarApp.css'; // Ensure you have this file for styling
+import { FaQuestionCircle } from 'react-icons/fa'; // Import question mark icon
+import './App.css';
 
 
-function CalendarApp({ selectedId, setSelectedId, setVenueName, setTrackName, setCountry }) {
+function CalendarApp({ selectedId, setSelectedId, setVenueName, setTrackName, setCountry, showAdmin, toggleHelp }) {
     const [data, setData] = useState([]);
     const [editMode, setEditMode] = useState(false);
     const [newVenue, setNewVenue] = useState("");
@@ -70,7 +72,14 @@ function CalendarApp({ selectedId, setSelectedId, setVenueName, setTrackName, se
 
     return (
       <div className="calendar-app">
-          <h1>Calendar</h1>
+          <h1>
+            Calendar
+            <div className="help-button-container">
+                <button className="help-button" onClick={toggleHelp}>
+                    <FaQuestionCircle /> Help
+                </button>
+            </div>
+          </h1>
           <ul>
               {data.map((item, index) => (
                   <li
@@ -125,14 +134,18 @@ function CalendarApp({ selectedId, setSelectedId, setVenueName, setTrackName, se
                   <button onClick={handleAddEntry}>Add Entry</button>
               </div>
           )}
-          <div className="edit-actions">
-            {!editMode && (
-              <button onClick={() => setEditMode(!editMode)}>
-                <FaEdit /> Edit Calendar
-              </button>
-            )}
-              {editMode && <button onClick={handleSaveChanges}><FaSave /> Save Changes</button>}
-          </div>
+          {
+          showAdmin ?
+            <div className="edit-actions">
+                {!editMode && (
+                <button onClick={() => setEditMode(!editMode)}>
+                    <FaEdit /> Edit Calendar
+                </button>
+                )}
+                {editMode && <button onClick={handleSaveChanges}><FaSave /> Save Changes</button>}
+            </div>
+            : ""
+          }
       </div>
   );
 }

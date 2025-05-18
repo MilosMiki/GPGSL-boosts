@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const loginEndpoint = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5250/login';
 
-function LoginApp({htmlContent,setHtmlContent, selectedDate, setSelectedDate, isLoggedIn, setIsLoggedIn}) {
-    const [username, setUsername] = useState('');
+function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, isLoggedIn, setIsLoggedIn, wrongUsername, setWrongUsername, 
+    wrongLogin, setWrongLogin, username, setUsername, cookies, setCookie}) {
     const [password, setPassword] = useState('');
-    const [wrongLogin, setWrongLogin] = useState(false);
-    const [wrongUsername, setWrongUsername] = useState(false);
+
+    // Load saved username from cookie when component mounts
+    useEffect(() => {
+        if (cookies.username) {
+            setUsername(cookies.username);
+            setWrongUsername(username !== "GPGSL");
+        }
+    }, [cookies.username]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -33,6 +39,10 @@ function LoginApp({htmlContent,setHtmlContent, selectedDate, setSelectedDate, is
             const data = await response.json();
             console.log('Login successful:', data);
             setIsLoggedIn(true);
+            
+            // Save username to cookie (expires in 30 days)
+            setCookie('username', username, { path: '/', maxAge: 2592000 });
+            
             if (data.cookies && data.cookies.phorum_session_v5) {
                 setWrongLogin(false);
                 setWrongUsername(username !== "GPGSL");
@@ -48,7 +58,6 @@ function LoginApp({htmlContent,setHtmlContent, selectedDate, setSelectedDate, is
     };
 
     return (
-
         <div className="login-container">
             <form onSubmit={handleSubmit}>
                 <label className="login-label">

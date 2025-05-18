@@ -5,6 +5,7 @@
 }
 .credits{
   font-size: 0.9em;
+  padding: 5px 0px 0px 20px
 }
 .sidebar-main-container {
   display: flex; /* Sidebar and main content appear side by side */
@@ -51,7 +52,7 @@
     width: 300px;
     flex-shrink: 0; /* Prevent shrinking */
     background-color: #f4f4f4;
-    padding: 20px;
+    padding: 20px 20px 0px 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
@@ -154,6 +155,14 @@
   flex-wrap: wrap; /* Allows elements to wrap on smaller screens */
 }
 
+.filter-one-button {
+  border-radius: 8px;
+  padding: 6px 15px;
+  margin: 0px 6px;
+  border-width: 2px;
+  font-size: 16px;
+}
+
 @media (max-width: 600px) {
   .login-container {
       padding: 15px;
@@ -163,4 +172,78 @@
   .date-picker {
       width: 100%;
   }
+}
+
+/* Help Overlay Styles */
+.help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.help-modal {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.help-content {
+    margin: 20px 0;
+}
+
+.help-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.help-footer button {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+/* Help Button Styles */
+.help-button-container {
+    padding: 5px 0px 0px 63px;
+    text-align: center;
+}
+
+.help-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.help-button:hover {
+    background-color: #45a049;
+}
+
+/* Cookies Notice Styles */
+.cookies-notice {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #f1f1f1;
+    padding: 4px;
+    text-align: center;
+    font-size: 13px;
+    border-top: 1px solid #ddd;
 }

@@ -4,7 +4,7 @@ import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore"
 import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaPlus } from 'react-icons/fa';
 import './lineup.css';
 
-function Lineup({venueName,htmlContent,trackName,country,date}) {
+function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, cookies, showAdmin}) {
     const [teams, setTeams] = useState([]);
     const [drivers, setDrivers] = useState([]);
     const [editMode, setEditMode] = useState(false);
@@ -24,6 +24,9 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
     const [deadlineBoosts, setDeadlineBoosts] = useState([]);
     const [warnings, setWarnings] = useState([]);
     const [totals, setTotals] = useState([]);
+    const [displayRace, setDisplayRace] = useState(true);
+    const [displayTest, setDisplayTest] = useState(true);
+    const [displayTestFullGrid, setDisplayTestFullGrid] = useState(false);
 
 
     useEffect(() => {
@@ -113,11 +116,24 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                         var driver;
                         var isDriverInTitle = false;
                         if(!nameOrUsername){ //2nd pass, match for sender, if driver name is found anywhere in message
-                            driver = drivers.find(
-                                (d) =>
-                                    d.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0
-                            );
-                            isDriverInTitle = new RegExp(driver.name, "i").test(title); // must check if driver name
+                            if(!wrongUsername){
+                                driver = drivers.find(
+                                    (d) =>
+                                        d.username.localeCompare(sender, undefined, { sensitivity: 'base' }) === 0
+                                );
+                            }
+                            else if(sender === "GPGSL"){ // added check: if not logged in as GPGSL, check if user has sent the boost correctly (sender becomes receiver)
+                                driver = drivers.find(
+                                    (d) =>
+                                        d.username.localeCompare(cookies.username, undefined, { sensitivity: 'base' }) === 0
+                                );
+                            }
+                            if(driver){
+                                isDriverInTitle = new RegExp(driver.name, "i").test(title); // must check if driver name
+                            }
+                            else{
+                                isDriverInTitle = false;
+                            }
                         }
                         else{ // if the title formatting is correct
 
@@ -129,7 +145,9 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                     d.name.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0 ||
                                     d.username.localeCompare(cleanedNameOrUsername, undefined, { sensitivity: 'base' }) === 0
                             );
-                            isDriverInTitle = driver.username === sender; // check whether the driver name matches the sender
+                            isDriverInTitle = (driver.username === sender && !wrongUsername) || (wrongUsername && driver.username === cookies.username && sender === "GPGSL"); 
+                            // check whether the driver name matches the sender
+                            // added check: if not logged in as GPGSL, check if user has sent the boost correctly (sender becomes receiver)
                         }
                         
                         if (driver) {
@@ -200,7 +218,9 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                             return (nameMatches || short1Matches || short2Matches);// && usernameMatches;
                         });
                         if (team) { // if the team from the title was found
-                            if (team.username === sender) { // only here check if the sender is correct
+                            if ((team.username === sender && !wrongUsername) || (wrongUsername && team.username === cookies.username && sender === "GPGSL")) { 
+                                // only here check if the sender is correct
+                                // added check: if not logged in as GPGSL, check if user has sent the boost correctly (sender becomes receiver)
                                 const boosted = boostType.toLowerCase() === "double" ? 2 : 1;
                                 matched = true;
                                 const existingBoost = newBoosts.find((b) => b.id === team.id);
@@ -410,28 +430,89 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
     const editLineup = () => {
         setEditMode(!editMode);
     };
-
+    
     return (
         <div className="lineup-editor">
             <div className="left-container">
+                {/* Add the filter buttons */}
+                <div className="filter-buttons" style={{ marginBottom: '10px' }}>
+                    <button className="filter-one-button"
+                        onClick={() => {
+                            setDisplayRace(true);
+                            setDisplayTest(true);
+                            setDisplayTestFullGrid(false); // Reset full grid mode
+                        }}
+                        style={{
+                            backgroundColor: displayRace && displayTest && !displayTestFullGrid ? '#4CAF50' : '',
+                            color: displayRace && displayTest && !displayTestFullGrid ? 'white' : '',
+                        }}
+                        title="Show race and test drivers"
+                    >
+                        All
+                    </button>
+                    <button className="filter-one-button"
+                        onClick={() => {
+                            setDisplayRace(true);
+                            setDisplayTest(false);
+                            setDisplayTestFullGrid(false); // Reset full grid mode
+                        }}
+                        style={{
+                            backgroundColor: displayRace && !displayTest && !displayTestFullGrid ? '#4CAF50' : '',
+                            color: displayRace && !displayTest && !displayTestFullGrid ? 'white' : ''
+                        }}
+                        title="Show only race drivers"
+                    >
+                        Race
+                    </button>
+                    <button className="filter-one-button"
+                        onClick={() => {
+                            setDisplayRace(false);
+                            setDisplayTest(true);
+                            setDisplayTestFullGrid(false); // Reset full grid mode
+                        }}
+                        style={{
+                            backgroundColor: !displayRace && displayTest && !displayTestFullGrid ? '#4CAF50' : '',
+                            color: !displayRace && displayTest && !displayTestFullGrid ? 'white' : ''
+                        }}
+                        title="Show only test drivers"
+                    >
+                        Test
+                    </button>
+                    {/* New Test (full grid) button */}
+                    <button className="filter-one-button"
+                        onClick={() => {
+                            setDisplayRace(false);
+                            setDisplayTest(true);
+                            setDisplayTestFullGrid(true); // Activate full grid mode
+                        }}
+                        style={{
+                            backgroundColor: displayTestFullGrid ? '#4CAF50' : '',
+                            color: displayTestFullGrid ? 'white' : ''
+                        }}
+                        title="Show test drivers with full grid (copying race drivers if needed)"
+                    >
+                        Test (full grid)
+                    </button>
+                </div>
+
                 <table>
                     <thead>
                         <tr>
                             <th>User</th>
                             <th>Boosts</th>
                             <th>Warning</th> {/*note: I (the guy doing the activity check) must not update this resource, 
-                                                      in the period between the boost deadline and the perfs being posted*/}
+                                                    in the period between the boost deadline and the perfs being posted*/}
                         </tr>
                     </thead>
                     <tbody>
                         {teams.map(team => (
                             <React.Fragment key={team.id}>
-                                {/* Team Row */}
+                                {/* Team Row - always visible */}
                                 <tr className={team.duplicate ? "duplicate-team-row" : "team-row"}>
                                     <td>
                                         {/* Team name and username */}
                                         <div>
-                                        {team.id / 100}. {team.name} ({team.username}) {team.duplicate ? " - duplicate entry" : ""}
+                                        {team.id / 100}. {team.name} ({team.username}) {team.duplicate ? " - duplicate boost" : ""}
                                         </div>
                                         {/* Display short1 and short2 if they exist */}
                                         {(team.short1 || team.short2) && (
@@ -442,10 +523,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                         </div>
                                         )}
                                     </td>
-                                    <td
-                                        style={{
-                                            textAlign: 'center'
-                                        }}>
+                                    <td style={{ textAlign: 'center' }}>
                                         {boosts.find((boost) => boost.id === team.id)?.boosted == 1
                                         ? "4"
                                         : boosts.find((boost) => boost.id === team.id)?.boosted == 2
@@ -453,7 +531,7 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                         : "" || ""}
                                     </td>
                                     {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
-                                                                                                      In practice, this means after I post with the GPGSL account.) */}
+                                                                                                In practice, this means after I post with the GPGSL account.) */}
                                     <td style={{ 
                                         textAlign: 'center',
                                         color: warnings.some(warning => warning.Username === team.username) ? 'red' : 'inherit'
@@ -468,39 +546,73 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                                         })()}
                                     </td>
                                 </tr>
-                                {/* Driver Rows */}
-                                {drivers
-                                    .filter(driver => Math.floor(driver.id / 100) === Math.floor(team.id / 100))
-                                    .map(driver => (
-                                        <tr key={driver.id} className={driver.duplicate ? "duplicate-driver-row" : "driver-row"}>
-                                            <td style={{ paddingLeft: '20px' }}>#{driver.id % 100}: {driver.name} ({driver.username}) {driver.duplicate ? " - duplicate entry" : ""}</td>
-                                            <td
-                                            style={{
-                                                textAlign: 'center'
-                                            }}>
-                                            {boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? "200" : "" || ""}</td>
-                                            {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
-                                                                                                      In practice, this means after I post with the GPGSL account.) */}
-                                            <td style={{ 
-                                                textAlign: 'center',
-                                                color: warnings.some(warning => warning.Username === driver.username) ? 'red' : 'inherit'
-                                            }}>
-                                                {(() => {
-                                                    const warningCount = totals.find(total => total.Username === driver.username)?.Warnings;
-                                                    if (warningCount === 1) return "20";
-                                                    if (warningCount === 2) return "40";
-                                                    if (warningCount >= 3) return "out";
-                                                    return "";
-                                                })()}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                {/* Driver Rows - filtered based on displayRace and displayTest */}
+                                {(() => {
+                                    // Get all drivers for this team
+                                    const teamDrivers = drivers.filter(driver => Math.floor(driver.id / 100) === Math.floor(team.id / 100));
+                                    
+                                    // Find the race drivers (1 and 2) if we need them for full grid mode
+                                    const driver1 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 1) : null;
+                                    const driver2 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 2) : null;
+                                    
+                                    // Process drivers based on current filter mode
+                                    return teamDrivers
+                                        .filter(driver => {
+                                            const driverType = driver.id % 100;
+                                            
+                                            // In full grid mode, we only want test drivers (3+)
+                                            if (displayTestFullGrid) {
+                                                return driverType >= 3;
+                                            }
+                                            
+                                            // Normal filter mode
+                                            return (displayRace && driverType <= 2) || (displayTest && driverType >= 3);
+                                        })
+                                        // Add copied drivers in full grid mode if needed
+                                        .concat(displayTestFullGrid ? [
+                                            // Add driver 3 (copy of 1 if doesn't exist)
+                                            ...(teamDrivers.some(d => d.id % 100 === 3) ? [] : [{
+                                                ...driver1,
+                                                raceDriver: true // Mark as race
+                                            }]),
+                                            // Add driver 4 (copy of 2 if doesn't exist)
+                                            ...(teamDrivers.some(d => d.id % 100 === 4) ? [] : [{
+                                                ...driver2,
+                                                raceDriver: true // Mark as race
+                                            }])
+                                        ].filter(Boolean) : []) // Filter out undefined if driver1/driver2 don't exist
+                                        .map(driver => (
+                                            <tr key={driver.id} className={driver.duplicate ? "duplicate-driver-row" : driver.raceDriver ? "race-driver-row" : "driver-row"}>
+                                                <td style={{ paddingLeft: '20px' }}>
+                                                    #{driver.id % 100}: {driver.name} ({driver.username}) 
+                                                    {driver.duplicate ? " - duplicate boost" : ""}
+                                                    {driver.raceDriver ? " - race" : ""}
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                {boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? "200" : "" || ""}</td>
+                                                {/* Warnings Column (fetches the updated warning penalty, AFTER I (the guy doing activity checks) save them to a .txt file with my app.
+                                                                                                    In practice, this means after I post with the GPGSL account.) */}
+                                                <td style={{ 
+                                                    textAlign: 'center',
+                                                    color: warnings.some(warning => warning.Username === driver.username) ? 'red' : 'inherit'
+                                                }}>
+                                                    {(() => {
+                                                        const warningCount = totals.find(total => total.Username === driver.username)?.Warnings;
+                                                        if (warningCount === 1) return "20";
+                                                        if (warningCount === 2) return "40";
+                                                        if (warningCount >= 3) return "out";
+                                                        return "";
+                                                    })()}
+                                                </td>
+                                            </tr>
+                                        ));
+                                })()}
                             </React.Fragment>
                         ))}
                     </tbody>
                 </table>
                 
-                {!editMode ? (
+                {showAdmin ? (!editMode ? (
                     <button onClick={() => setEditMode(!editMode)}>
                         <FaEdit /> Edit Lineup
                     </button>
@@ -574,21 +686,19 @@ function Lineup({venueName,htmlContent,trackName,country,date}) {
                             </button>
                         </div>
                     </>
-                )}
+                )) : ""}
             </div>
             
-
             <div className="side-tables">
-                <DeadlineBoostsTable boosts={deadlineBoosts} />
-                <UnmatchedBoostsTable boosts={unmatchedBoosts} />
-                <OtherMessagesTable messages={otherMessages} />
+                <DeadlineBoostsTable boosts={deadlineBoosts} wrongUsername={wrongUsername}/>
+                <UnmatchedBoostsTable boosts={unmatchedBoosts} wrongUsername={wrongUsername}/>
+                <OtherMessagesTable messages={otherMessages} wrongUsername={wrongUsername}/>
             </div>
-
         </div>
     );
 };
 
-function DeadlineBoostsTable({ boosts }) {
+function DeadlineBoostsTable({ boosts, wrongUsername }) {
     // If boosts is an empty array, render nothing
     if (boosts.length === 0) {
         return <> </>;
@@ -599,7 +709,7 @@ function DeadlineBoostsTable({ boosts }) {
             <table className="deadline-table">
                 <thead>
                     <tr>
-                        <th>Sender</th>
+                        <th>{wrongUsername ? "Receiver" : "Sender"}</th>
                         <th>Message</th>
                         <th className="deadline-date">Date</th> {/* New column for date */}
                     </tr>
@@ -621,7 +731,7 @@ function DeadlineBoostsTable({ boosts }) {
     );
 }
 
-function UnmatchedBoostsTable({ boosts }) {
+function UnmatchedBoostsTable({ boosts, wrongUsername }) {
     // If boosts is an empty array, render nothing
     if (boosts.length === 0) {
         return <> </>;
@@ -632,7 +742,7 @@ function UnmatchedBoostsTable({ boosts }) {
             <table className="unmatched-table">
                 <thead>
                     <tr>
-                        <th>Sender</th>
+                        <th>{wrongUsername ? "Receiver" : "Sender"}</th>
                         <th>Message</th>
                         <th className="unmatched-date">Date</th> {/* New column for date */}
                     </tr>
@@ -655,7 +765,7 @@ function UnmatchedBoostsTable({ boosts }) {
     );
 }
 
-function OtherMessagesTable({ messages }) {
+function OtherMessagesTable({ messages, wrongUsername }) {
     // If messages is an empty array, render nothing
     if (messages.length === 0) {
         return <> </>;
@@ -666,7 +776,7 @@ function OtherMessagesTable({ messages }) {
             <table className="other-table">
                 <thead>
                     <tr>
-                        <th>Sender</th>
+                        <th>{wrongUsername ? "Receiver" : "Sender"}</th>
                         <th>Message</th>
                         <th className="unmatched-date">Date</th> {/* Date column */}
                     </tr>

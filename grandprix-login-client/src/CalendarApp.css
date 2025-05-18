@@ -1,12 +1,14 @@
 .calendar-app {
     width: calc(100% - 20px); /* Adjust width to account for padding */
     background-color: #f4f4f4;
-    padding: 20px;
+    padding: 20px 20px 0px 20px;
 }
 
 .calendar-app h1 {
     text-align: left;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
+    margin-top: 0px;
+    display: flex;
 }
 
 .calendar-app ul {
@@ -18,8 +20,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px;
-    margin-bottom: 5px;
+    padding: 6px;
+    margin-bottom: 3px;
     background-color: #fff;
     border: 1px solid #ddd;
     cursor: pointer;
@@ -57,6 +59,7 @@
 }
 .venue-name {
     flex-grow: 1;
+    font-size: 0.95em; /* Smaller font size */
 }
 
 .venue-actions {
@@ -78,8 +81,7 @@
 
 .edit-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
 .edit-actions button {

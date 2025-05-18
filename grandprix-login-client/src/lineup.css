@@ -1,5 +1,5 @@
 .lineup-editor table {
-    width: 450px;
+    width: 460px;
     border-collapse: collapse;
     font-family: Arial, sans-serif;
     margin: 20px 0;
@@ -54,6 +54,14 @@
 
 .lineup-editor tr.duplicate-driver-row:hover {
     background-color: #fff2cc; /* Slightly stronger but still light */
+}
+
+.lineup-editor tr.race-driver-row {
+    background-color: #ddf5eb;  /* Soft but noticeable mint */
+}
+
+.lineup-editor tr.race-driver-row:hover {
+    background-color: #c5eedd;  /* Gentle hover contrast */
 }
 
 .main-table {
