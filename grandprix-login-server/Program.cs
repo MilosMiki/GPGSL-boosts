@@ -300,7 +300,7 @@ namespace GrandPrixLoginAPI
                         ["posting_token:pm"] = form["posting_token:pm"]!,
                         ["action"] = "post",
                         ["to_name"] = form["to_name"]!,
-                        ["recipients[40766]"] = "1",
+                        ["recipients[" + form["recipients"] + "]"] = "1",
                         ["subject"] = form["subject"]!,
                         ["message"] = form["message"]!,
                         ["spamhurdles_pm"] = form["spamhurdles_pm"]!,
