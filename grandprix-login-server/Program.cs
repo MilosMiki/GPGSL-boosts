@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Text;
 using System.Diagnostics;
 using DotNetEnv;
+using System.Net.Http.Headers;
 
 namespace GrandPrixLoginAPI
 {
@@ -162,6 +163,196 @@ namespace GrandPrixLoginAPI
             var app = builder.Build();
             // Add CORS middleware to your application
             app.UseCors("AllowLocalhost");
+            
+            app.MapPost("/login/get-pm-page", async (HttpContext context) =>
+            {
+                try
+                {
+                    // 1. Parse login credentials
+                    var loginRequest = await context.Request.ReadFromJsonAsync<LoginRequest>();
+                    if (loginRequest == null || string.IsNullOrEmpty(loginRequest.Username) || string.IsNullOrEmpty(loginRequest.Password))
+                    {
+                        return Results.Json(new { success = false, message = "Username and password are required" }, statusCode: 400);
+                    }
+
+                    // 2. Initialize HttpClient with cookie handling
+                    var cookieContainer = new CookieContainer();
+                    var handler = new HttpClientHandler { CookieContainer = cookieContainer };
+                    using var client = new HttpClient(handler);
+                    
+                    // 3. First fetch login page to get CSRF token
+                    var loginPageUrl = "https://www.grandprixgames.org/login.php?4";
+                    var loginResponse = await client.GetAsync(loginPageUrl);
+                    if (!loginResponse.IsSuccessStatusCode)
+                    {
+                        return Results.Json(new { success = false, message = "Failed to load login page" }, statusCode: (int)loginResponse.StatusCode);
+                    }
+
+                    var loginHtml = await loginResponse.Content.ReadAsStringAsync();
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(loginHtml);
+                    
+                    var tokenNode = doc.DocumentNode.SelectSingleNode("//input[@name='posting_token:login']");
+                    if (tokenNode == null)
+                    {
+                        return Results.Json(new { success = false, message = "Could not find CSRF token in login page" });
+                    }
+                    var csrfToken = tokenNode.GetAttributeValue("value", "");
+
+                    // 4. Perform login
+                    var formData = new FormUrlEncodedContent(new[]
+                    {
+                        new KeyValuePair<string, string>("username", loginRequest.Username),
+                        new KeyValuePair<string, string>("password", loginRequest.Password),
+                        new KeyValuePair<string, string>("posting_token:login", csrfToken)
+                    });
+
+                    var postLoginResponse = await client.PostAsync("https://www.grandprixgames.org/login.php", formData);
+                    if (!postLoginResponse.IsSuccessStatusCode)
+                    {
+                        return Results.Json(new { success = false, message = "Login failed" }, statusCode: (int)postLoginResponse.StatusCode);
+                    }
+
+                    // 5. Now fetch PM form page
+                    var pmFormUrl = "https://www.grandprixgames.org/pm.php?4,page=send";
+                    var pmFormResponse = await client.GetAsync(pmFormUrl);
+                    if (!pmFormResponse.IsSuccessStatusCode)
+                    {
+                        return Results.Json(new { success = false, message = "Failed to load PM form" }, statusCode: (int)pmFormResponse.StatusCode);
+                    }
+
+                    var pmFormHtml = await pmFormResponse.Content.ReadAsStringAsync();
+                    doc.LoadHtml(pmFormHtml);
+
+                    // 6. Extract required fields from PM form
+                    var pmTokenNode = doc.DocumentNode.SelectSingleNode("//input[@name='posting_token:pm']");
+                    var spamHurdleNode = doc.DocumentNode.SelectSingleNode("//input[@name='spamhurdles_pm']");
+                    
+                    if (pmTokenNode == null || spamHurdleNode == null)
+                    {
+                        return Results.Json(new { success = false, message = "Incorrect username/password" });
+                    }
+
+                    // 7. Get session cookie to return to client
+                    var sessionCookie = cookieContainer.GetCookies(new Uri("https://www.grandprixgames.org"))
+                        .FirstOrDefault(c => c.Name == "phorum_session_v5");
+
+                    if (sessionCookie == null)
+                    {
+                        return Results.Json(new { success = false, message = "Session cookie not found after login" });
+                    }
+
+                    // 8. Return success with all needed data
+                    return Results.Json(new 
+                    {
+                        success = true,
+                        posting_token = pmTokenNode.GetAttributeValue("value", ""),
+                        spamhurdles_pm = spamHurdleNode.GetAttributeValue("value", ""),
+                        forum_id = "4", // Constant from the form
+                        session_cookie = sessionCookie.Value,
+                        cookie_expires = sessionCookie.Expires.ToString("o")
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { success = false, message = ex.Message }, statusCode: 500);
+                }
+            });
+
+            app.MapPost("/login/send-pm", async (HttpContext context) =>
+            {
+                var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+                
+                try
+                {
+                    // 1. Read as form data
+                    var form = await context.Request.ReadFormAsync();
+                    logger.LogInformation("Received form data: {@FormData}", form);
+
+                    // 2. Validate we have a session cookie
+                    if (!form.TryGetValue("session_cookie", out var sessionCookie) || string.IsNullOrEmpty(sessionCookie))
+                    {
+                        return Results.Json(new { success = false, message = "Missing session cookie" }, statusCode: 400);
+                    }
+
+                    // 3. Initialize HttpClient with EXACT same cookies as browser would have
+                    var cookieContainer = new CookieContainer();
+                    var handler = new HttpClientHandler { 
+                        CookieContainer = cookieContainer,
+                        UseCookies = true,
+                        AllowAutoRedirect = false // Important to see actual response
+                    };
+                    
+                    // Add ALL required cookies exactly as the website expects
+                    cookieContainer.Add(new Uri("https://www.grandprixgames.org"), 
+                        new Cookie("phorum_session_v5", sessionCookie));
+                    cookieContainer.Add(new Uri("https://www.grandprixgames.org"),
+                        new Cookie("help", "true")); // Often required by the site
+
+                    using var client = new HttpClient(handler);
+                    client.DefaultRequestHeaders.Add("User-Agent", 
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36");
+                    
+                    // 4. Prepare EXACT form data as the website expects
+                    var postData = new Dictionary<string, string>
+                    {
+                        ["forum_id"] = "4",
+                        ["posting_token:pm"] = form["posting_token:pm"]!,
+                        ["action"] = "post",
+                        ["to_name"] = form["to_name"]!,
+                        ["recipients[40766]"] = "1",
+                        ["subject"] = form["subject"]!,
+                        ["message"] = form["message"]!,
+                        ["spamhurdles_pm"] = form["spamhurdles_pm"]!,
+                        ["keep"] = "1",
+                        ["post"] = "Send PM"
+                    };
+
+                    // 5. Send to target website with EXACT content type
+                    var content = new FormUrlEncodedContent(postData);
+                    content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+                    var response = await client.PostAsync(
+                        "https://www.grandprixgames.org/pm.php?4,page=send", // Note the exact URL with parameters
+                        content
+                    );
+
+                    // 6. Check for successful PM sent (either redirect or direct response)
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    
+                    if (response.StatusCode == HttpStatusCode.Redirect)
+                    {
+                        if (response.Headers.Location?.ToString().Contains("okmsg=PMSent") == true)
+                        {
+                            return Results.Json(new { success = true });
+                        }
+                    }
+                    else if (responseContent.Contains("Private message sent"))
+                    {
+                        return Results.Json(new { success = true });
+                    }
+
+                    // 7. Detailed error analysis
+                    logger.LogError("PM send failed. Status: {StatusCode}, Response: {Content}", 
+                        response.StatusCode, responseContent);
+                    
+                    return Results.Json(new { 
+                        success = false,
+                        status = (int)response.StatusCode,
+                        message = "Too fast - try again in 5 seconds",
+                        response = responseContent.Length > 500 ? responseContent.Substring(0, 500) + "..." : responseContent
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error sending PM");
+                    return Results.Json(new { 
+                        success = false, 
+                        message = ex.Message,
+                        stackTrace = ex.StackTrace
+                    }, statusCode: 500);
+                }
+            });
 
             app.MapGet("/login/check-session", async (HttpContext context) =>
             {
@@ -371,4 +562,16 @@ namespace GrandPrixLoginAPI
         public string Accept { get; set; } = "";
         public string Cookie { get; set; } = "";
     }
+
+    public record SendPmRequest(
+        string To,
+        string RecipientId,
+        string Subject,
+        string Message,
+        string PostingToken,
+        string SpamHurdlesPm,
+        string SessionCookie,
+        string? ForumId = null,
+        bool KeepCopy = true
+    );
 }

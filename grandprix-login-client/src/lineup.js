@@ -108,7 +108,7 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
             else{
                 let matched = false;
                 let message = "";
-                if (isDriverBoost) {
+                if (isDriverBoost && !isTeamBoost) {
                     // Extract driver name/username and venue from title (with optional parentheses)
                     const [, nameOrUsername, venue] =
                         processedTitle.match(/^(?:(?:Driver\s+)?Boost)\s*-\s*\(?([^(]+?)\s*(?:\([^)]*\))?\s*-\s*(\(?.+?\)?)\s*[-,]?\s*$/i) || [];
@@ -190,7 +190,10 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
                             otherMessages.push({ title, sender, date: formatDate(parsedDate), body });
                         }
                     }
-                } else if (isTeamBoost) {
+                    else{
+                        console.log("Matched as a driver boost for title: " + title);
+                    }
+                } else if (isTeamBoost && !isDriverBoost) {
                     // this if block will append single/double boost from message body, if not present in title.
                     if(!containsTeamBoost(processedTitle)){
                         if (/single/i.test(body)) {
@@ -840,14 +843,20 @@ function parseCustomDate(dateString) {
         now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()
     ));
 
+    // Handle "just now" or "this minute"
+    if (dateString.toLowerCase().match(/^(just now|this minute)$/)) {
+        return new Date(nowUTC); // Return current time
+    }
+
     // Relative time (e.g., "3 hours ago")
-    const relativeMatch = dateString.match(/(\d+)\s+(minute|hour|day|week)s?\s+ago/i);
+    const relativeMatch = dateString.match(/(\d+)\s+(second|minute|hour|day|week)s?\s+ago/i);
     if (relativeMatch) {
         const amount = parseInt(relativeMatch[1], 10);
-        const unit = relativeMatch[2];
+        const unit = relativeMatch[2].toLowerCase();
         const adjusted = new Date(nowUTC);
 
-        if (unit === "minute") adjusted.setUTCMinutes(adjusted.getUTCMinutes() - amount);
+        if (unit === "second") adjusted.setUTCSeconds(adjusted.getUTCSeconds() - amount);
+        else if (unit === "minute") adjusted.setUTCMinutes(adjusted.getUTCMinutes() - amount);
         else if (unit === "hour") adjusted.setUTCHours(adjusted.getUTCHours() - amount);
         else if (unit === "day") adjusted.setUTCDate(adjusted.getUTCDate() - amount);
         else if (unit === "week") adjusted.setUTCDate(adjusted.getUTCDate() - amount * 7);
@@ -904,8 +913,6 @@ function parseCustomDate(dateString) {
 
     return new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
 }
-
-
 
 
 // Helper function to format the date as "DD.MM.YYYY HH:MM" in GMT/UTC

@@ -115,7 +115,7 @@ function App() {
                     toggleHelp={toggleHelp}
                 />
                 <div className="credits">
-                    App version 0.4.1<br />
+                    App version 0.4.2<br />
                     Contact: <a href="mailto:milos.ancevski@student.um.si">milos.ancevski@student.um.si</a><br />
                     GitHub: <a href="https://github.com/MilosMiki/GPGSL-boosts" target="_blank" rel="noopener noreferrer">MilosMiki/GPGSL-boosts</a>
                 </div>
