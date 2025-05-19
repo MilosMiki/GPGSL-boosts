@@ -185,6 +185,11 @@ export default function App() {
           </div>
         )}
       </div>
+      <div className="credits">
+          App version 0.1.0<br />
+          Contact: <a href="mailto:milos.ancevski@student.um.si">milos.ancevski@student.um.si</a><br />
+          GitHub: <a href="https://github.com/MilosMiki/GPGSL-boosts/tree/master/gpgsl-two-step-boost" target="_blank" rel="noopener noreferrer">MilosMiki/GPGSL-boosts</a>
+      </div>
     </div>
   );
 }
