@@ -267,7 +267,7 @@ namespace GrandPrixLoginAPI
                 {
                     // 1. Read as form data
                     var form = await context.Request.ReadFormAsync();
-                    logger.LogInformation("Received form data: {@FormData}", form);
+                    //logger.LogInformation("Received form data: {@FormData}", form);
 
                     // 2. Validate we have a session cookie
                     if (!form.TryGetValue("session_cookie", out var sessionCookie) || string.IsNullOrEmpty(sessionCookie))
