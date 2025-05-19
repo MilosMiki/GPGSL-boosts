@@ -54,7 +54,7 @@ export default function PmForm({ loginData, driverBoost, teamBoost, race, teamBo
     formData.append('post', 'Send PM');
     formData.append('session_cookie', loginData.session_cookie || '');
 
-    const response = await fetch('/login/send-pm', {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/send-pm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

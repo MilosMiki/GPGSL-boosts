@@ -21,7 +21,7 @@ export default function Login({ onLoginSuccess, setUsername }: LoginProps) {
     setError(null);
 
     try {
-      const response = await fetch('/login/get-pm-page', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/get-pm-page`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
