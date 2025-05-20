@@ -10,6 +10,7 @@
   --input-text: #333;
   --border-color: #ccc;
   --credits-color: #333;
+  --boost-selected-color: #f0f8ff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +23,27 @@
     --input-text: #ffffff;
     --border-color: #444;
     --credits-color: #ffffff;
+    --boost-selected-color: #f0f8ff;
+  }
+}
+
+@media (max-width: 480px) {
+  .boost-options {
+    gap: 0.75rem;
+  }
+  
+  .boost-option {
+    padding: 1rem;
+  }
+  
+  .form-container {
+    padding: 1rem;
+    width: 95%;
+  }
+  
+  .btns-group {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 
@@ -259,7 +281,9 @@ input {
 .boost-option {
   flex: 1;
   padding: 1.5rem;
-  border: 2px solid #ddd;
+  border: 2px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-color);
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s;
@@ -272,18 +296,18 @@ input {
 
 .boost-option.selected {
   border-color: var(--primary-color);
-  background-color: #f0f8ff;
+  background-color: var(--boost-selected-color);
 }
 
 .boost-option.disabled {
   cursor: not-allowed;
   opacity: 0.6;
-  background-color: #f5f5f5;
+  background-color: var(--bg-color);
 }
 
 .boost-option h3 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .boost-option.disabled h3 {
@@ -292,7 +316,7 @@ input {
 
 .boost-option p {
   margin: 0 0 0.5rem 0;
-  color: #666;
+  color: var(--text-color);
   font-size: 0.9rem;
 }
 
@@ -302,7 +326,7 @@ input {
 
 .boost-type-selector {
   display: flex;
-  justify-content: center;
+  justify-content: column;
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -310,8 +334,43 @@ input {
 .boost-type-selector label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.boost-type-selector label:hover {
+  border-color: var(--primary-color);
+}
+
+.boost-type-selector input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  margin: 0;
+  position: relative;
+}
+
+.boost-type-selector input[type="radio"]:checked {
+  border-color: var(--primary-color);
+}
+
+.boost-type-selector input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--primary-color);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* Race Picker */
