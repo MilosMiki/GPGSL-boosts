@@ -1,4 +1,51 @@
 /* src/App.css */
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212;
+    color: #ffffff;
+  }
+
+  .form-container {
+    background-color: #1e1e1e;
+    border-color: #333;
+  }
+
+  input {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #ffffff;
+  }
+
+  .progress-step::after {
+    color: #aaa;
+  }
+
+  .boost-option {
+    border-color: #444;
+    background-color: #2d2d2d;
+  }
+
+  .boost-option.selected {
+    background-color: #1a3a6a;
+  }
+
+  .race-item {
+    background-color: #2d2d2d;
+    border-color: #444;
+  }
+
+  .race-item:hover {
+    background-color: #3d3d3d;
+  }
+
+  .race-item.selected {
+    background-color: #1a3a6a;
+  }
+
+  /* Add any other dark mode specific styles here */
+}
+
 :root {
   --primary-color: rgb(11, 78, 179);
 }
