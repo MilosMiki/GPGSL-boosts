@@ -23,7 +23,7 @@
     --input-text: #ffffff;
     --border-color: #444;
     --credits-color: #ffffff;
-    --boost-selected-color: #f0f8ff;
+    --boost-selected-color: #0a1f3d;
   }
 }
 
@@ -326,7 +326,7 @@ input {
 
 .boost-type-selector {
   display: flex;
-  justify-content: column;
+  justify-content: center;
   gap: 1rem;
   margin-top: 1rem;
 }
