@@ -6,12 +6,12 @@ import { Team } from '../types/team';
 import { Driver } from '../types/driver';
 
 interface BoostPickerProps {
-  handleBoostSelected: (type: 'driver' | 'team', boostType?: 'single' | 'double') => void;
+  handleBoostSelected: (type: 'driver' | 'team', boostType?: 'Single' | 'Double') => void;
   driverBoost: boolean;
   teamBoost: boolean;
   username: string;
-  boostType: 'single' | 'double' | null;
-  setBoostType: (type: 'single' | 'double') => void;
+  boostType: 'Single' | 'Double' | null;
+  setBoostType: (type: 'Single' | 'Double') => void;
   driver: Driver | null;
   setDriver: Dispatch<SetStateAction<Driver | null>>;
   team: Team | null;
@@ -113,8 +113,8 @@ export default function BoostPicker({ handleBoostSelected, driverBoost, teamBoos
                 <input
                   type="radio"
                   name="boostType"
-                  checked={boostType === 'single'}
-                  onChange={() => setBoostType('single')}
+                  checked={boostType === 'Single'}
+                  onChange={() => setBoostType('Single')}
                 />
                 Single
               </label>
@@ -122,8 +122,8 @@ export default function BoostPicker({ handleBoostSelected, driverBoost, teamBoos
                 <input
                   type="radio"
                   name="boostType"
-                  checked={boostType === 'double'}
-                  onChange={() => setBoostType('double')}
+                  checked={boostType === 'Double'}
+                  onChange={() => setBoostType('Double')}
                 />
                 Double
               </label>

@@ -20,7 +20,7 @@ export default function App() {
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  const [teamBoostType, setTeamBoostType] = useState<'single' | 'double' | null>(null);
+  const [teamBoostType, setTeamBoostType] = useState<'Single' | 'Double' | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
 
@@ -59,7 +59,7 @@ export default function App() {
     nextStep();
   }
 
-  function handleTeamBoostType(type: 'single' | 'double'){
+  function handleTeamBoostType(type: 'Single' | 'Double'){
     setTeamBoostType(type);
     setTeamBoost(true);
   }
@@ -91,6 +91,7 @@ export default function App() {
     if(step === 0){
       setDriverBoost(false);
       setTeamBoost(false);
+      setTeamBoostType(null);
     }
     if (step === 1) {
       if(!driverBoost && !teamBoost)

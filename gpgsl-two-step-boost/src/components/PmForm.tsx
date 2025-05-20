@@ -11,7 +11,7 @@ interface PmFormProps {
   driverBoost: boolean;
   teamBoost: boolean;
   race: Race | null;
-  teamBoostType: 'single' | 'double' | null;
+  teamBoostType: 'Single' | 'Double' | null;
   onSendSuccess: () => void;
   driver: Driver | null;
   team: Team | null;
@@ -130,10 +130,6 @@ export default function PmForm({ loginData, driverBoost, teamBoost, race, teamBo
             <strong>Title:</strong> {teamTitle}
           </div>
         )}
-        
-        <div className="summary-item">
-          <strong>Race:</strong> {raceDetails.venue} ({raceDetails.track}, {raceDetails.country})
-        </div>
       </div>
       
       {error && <div className="error-message">{error}</div>}

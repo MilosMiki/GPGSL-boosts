@@ -5,12 +5,15 @@
   --primary-color: rgb(11, 78, 179);
   --bg-color: #f5f5f5;
   --text-color: #333;
+  --text-color-secondary: #666;
   --card-bg: white;
   --input-bg: white;
   --input-text: #333;
   --border-color: #ccc;
   --credits-color: #333;
   --boost-selected-color: #f0f8ff;
+  --summary: #f8f9fa;
+  --scrollbar: #f1f1f1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,12 +21,15 @@
     /* Dark mode overrides */
     --bg-color: #121212;
     --text-color: #ffffff;
+    --text-color-secondary: #bbb;
     --card-bg: #1e1e1e;
     --input-bg: #2d2d2d;
     --input-text: #ffffff;
     --border-color: #444;
     --credits-color: #ffffff;
     --boost-selected-color: #0a1f3d;
+    --summary: #18191a;
+    --scrollbar: #161616;
   }
 }
 
@@ -403,18 +409,18 @@ input {
 }
 
 .race-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-color);
 }
 
 .race-item.selected {
-  background-color: #e7f1ff;
   border-color: var(--primary-color);
+  background-color: var(--boost-selected-color);
 }
 
 .race-id {
   font-weight: bold;
   margin-right: 1rem;
-  color: #666;
+  color: var(--text-color-secondary);
   font-size: 1.1rem;
   align-self: center;
   min-width: 1.5rem;
@@ -426,13 +432,13 @@ input {
 
 .race-name {
   font-weight: bold;
-  color: #333;
+  color: var(--text-color);
   margin-bottom: 0.25rem;
 }
 
 .race-track {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 /* Custom scrollbar styling */
@@ -441,7 +447,7 @@ input {
 }
 
 .race-list-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--scrollbar);
   border-radius: 4px;
 }
 
@@ -456,7 +462,7 @@ input {
 
 /* PM Form */
 .boost-summary {
-  background-color: #f8f9fa;
+  background-color: var(--summary);
   padding: 1.5rem;
   border-radius: 0.25rem;
   margin: 1.5rem 0;
