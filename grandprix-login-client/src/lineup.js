@@ -27,6 +27,7 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
     const [displayRace, setDisplayRace] = useState(true);
     const [displayTest, setDisplayTest] = useState(true);
     const [displayTestFullGrid, setDisplayTestFullGrid] = useState(false);
+    const [showBoostsPopup, setShowBoostsPopup] = useState(false);
 
 
     useEffect(() => {
@@ -440,6 +441,28 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
         setEditMode(!editMode);
     };
     
+    const raceDriversBoosts = drivers
+        .filter(driver => {
+            const driverIdSuffix = driver.id % 100;
+            return (driverIdSuffix === 1 || driverIdSuffix === 2) && boosts.some(b => b.id === driver.id);
+        })
+        .map(driver => driver.name);
+
+    const testDriversBoosts = drivers
+        .filter(driver => {
+            const driverIdSuffix = driver.id % 100;
+            return driverIdSuffix >= 3 && boosts.some(b => b.id === driver.id);
+        })
+        .map(driver => driver.name);
+
+    const boostedTeams = teams
+        .filter(team => boosts.some(b => b.id === team.id))
+        .map(team => {
+            const boost = boosts.find(b => b.id === team.id);
+            const boostValue = boost.boosted === 2 ? 8 : 4;
+            return `${team.name}, +${boostValue}`;
+        });
+
     return (
         <div className="lineup-editor">
             <div className="left-container">
@@ -503,6 +526,58 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
                         Test (full grid)
                     </button>
                 </div>
+
+                <button 
+                    onClick={() => setShowBoostsPopup(true)} 
+                    style={{ 
+                        marginBottom: '10px',
+                        backgroundColor: '#ff4444',
+                        color: 'white',
+                        padding: '12px 20px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    NEW! List all boosts (for posting the perfs)
+                </button>
+
+                {showBoostsPopup && (
+                    <div className="help-overlay" onClick={() => setShowBoostsPopup(false)}>
+                        <div className="help-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="help-content">
+                                {raceDriversBoosts.length > 0 && (
+                                    <div>
+                                        {raceDriversBoosts.map((driver, index) => (
+                                            <div key={index}>{driver}</div>
+                                        ))}
+                                    </div>
+                                )}
+                                {testDriversBoosts.length > 0 && (
+                                    <div>
+                                        <br />
+                                        {testDriversBoosts.map((driver, index) => (
+                                            <div key={index}>{driver}</div>
+                                        ))}
+                                    </div>
+                                )}
+                                {boostedTeams.length > 0 && (
+                                    <div>
+                                        <br />
+                                        {boostedTeams.map((team, index) => (
+                                            <div key={index}>{team}</div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="help-footer">
+                                <button onClick={() => setShowBoostsPopup(false)}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <table>
                     <thead>
