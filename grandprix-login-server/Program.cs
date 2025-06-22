@@ -411,6 +411,83 @@ namespace GrandPrixLoginAPI
                 }*/
             });
 
+            app.MapGet("/boost-announcement", async (HttpContext context) =>
+            {
+                try
+                {
+                    using var client = new HttpClient();
+                    
+                    // Set headers to mimic a browser request
+                    var userAgent = context.Request.Headers["User-Agent"].FirstOrDefault() ??
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+                    var accept = context.Request.Headers["Accept"].FirstOrDefault() ??
+                        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8";
+                    
+                    client.DefaultRequestHeaders.Add("User-Agent", userAgent);
+                    client.DefaultRequestHeaders.Add("Accept", accept);
+
+                    // Fetch the GPGSL search page
+                    var response = await client.GetAsync("https://www.grandprixgames.org/search.php?107,search=,author=GPGSL,page=1,match_type=ALL,match_dates=365,match_forum=4,match_threads=0");
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return Results.Json(new { success = false, message = "Failed to fetch boost announcement" });
+                    }
+
+                    var htmlContent = await response.Content.ReadAsStringAsync();
+                    
+                    // Parse the HTML to find boost announcements
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(htmlContent);
+                    
+                    // Find all search results
+                    var searchResults = doc.DocumentNode.SelectNodes("//div[@class='search-result']");
+                    
+                    if (searchResults == null)
+                    {
+                        return Results.Json(new { success = false, message = "No search results found" });
+                    }
+                    
+                    // Check first two posts for boost announcements
+                    for (int i = 0; i < Math.Min(2, searchResults.Count); i++)
+                    {
+                        var result = searchResults[i];
+                        var blockquote = result.SelectSingleNode(".//blockquote");
+                        
+                        if (blockquote != null)
+                        {
+                            var text = blockquote.InnerText.Trim();
+                            //Console.WriteLine($"Checking post {i + 1}: {text.Substring(0, Math.Min(100, text.Length))}...");
+                            
+                            if (text.Contains("Boost Announcement"))
+                            {
+                                //Console.WriteLine("Found Boost Announcement!");
+                                // Look for "Round ##" pattern
+                                var roundMatch = System.Text.RegularExpressions.Regex.Match(text, @"Round (\d+):");
+                                if (roundMatch.Success)
+                                {
+                                    var roundNumber = roundMatch.Groups[1].Value;
+                                    var roundTextMatch = System.Text.RegularExpressions.Regex.Match(text, @"Round \d+: ([^-]+)");
+                                    var roundName = roundTextMatch.Success ? roundTextMatch.Groups[1].Value.Trim() : "";
+                                    
+                                    //Console.WriteLine($"Found Round {roundNumber}: {roundName}");
+                                    return Results.Json(new { 
+                                        success = true, 
+                                        message = $"Round {roundNumber} - {roundName}" 
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    return Results.Json(new { success = false, message = "Boost post not found" });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Json(new { success = false, message = $"Error: {ex.Message}" });
+                }
+            });
+
             app.MapPost("/login", async (HttpContext context) =>
             {
                 // Read the request body as JSON

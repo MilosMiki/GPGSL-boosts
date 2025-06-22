@@ -1,17 +1,20 @@
 // src/components/CalendarPicker.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { Race } from '../types/race';
 
 interface CalendarPickerProps {
-  onRaceSelected: (race: Race) => void;
+  onRaceSelected: (race: Race | null) => void;
+  boostInfo: string | null;
+  useCurrentGP: boolean;
+  externalSelectedRace: Race | null;
 }
 
-export default function CalendarPicker({ onRaceSelected }: CalendarPickerProps) {
-  const [selectedRace, setSelectedRace] = useState<number | null>(null);
+export default function CalendarPicker({ onRaceSelected, boostInfo, useCurrentGP, externalSelectedRace }: CalendarPickerProps) {
   const [races, setRaces] = useState<Race[]>([]);
   const [loading, setLoading] = useState(true);
+  const prevUseCurrentGP = useRef(useCurrentGP);
 
   useEffect(() => {
     const fetchRaces = async () => {
@@ -35,22 +38,48 @@ export default function CalendarPicker({ onRaceSelected }: CalendarPickerProps) 
     fetchRaces();
   }, []);
 
+  // Auto-select race based on boost info when useCurrentGP is true
+  useEffect(() => {
+    if (useCurrentGP && boostInfo && races.length > 0) {
+      // Extract round number from boost info (e.g., "Next Boost: Round 4 - Portuguese Grand Prix")
+      const roundMatch = boostInfo.match(/Round (\d+)/);
+      if (roundMatch) {
+        const roundNumber = parseInt(roundMatch[1]);
+        const targetRace = races.find(race => race.id === roundNumber);
+        if (targetRace) {
+          onRaceSelected(targetRace);
+        }
+      }
+    } else if (!useCurrentGP && prevUseCurrentGP.current && races.length > 0) {
+      // Only clear selection when switching from ON to OFF and races are loaded
+      onRaceSelected(null);
+    }
+    
+    // Update the ref
+    prevUseCurrentGP.current = useCurrentGP;
+  }, [useCurrentGP, boostInfo, races, onRaceSelected]);
+
+  // Handle manual race selection
+  const handleRaceClick = (race: Race) => {
+    onRaceSelected(race);
+  };
+
   if (loading) {
     return <div className="calendar-picker">Loading races...</div>;
   }
 
+  // Filter races based on useCurrentGP
+  const displayRaces = useCurrentGP ? races : races.filter(race => race.id > 1);
+
   return (
     <div className="calendar-picker">
-      <div className="race-list-container" style={{ maxHeight: `calc(100vh - 500px)` }}>
+      <div className="race-list-container" style={{ maxHeight: `calc(92vh - 500px)` }}>
         <div className="race-list">
-          {races.map(race => (
+          {displayRaces.map(race => (
             <div 
               key={race.id}
-              className={`race-item ${selectedRace === race.id ? 'selected' : ''}`}
-              onClick={() => {
-                setSelectedRace(race.id);
-                onRaceSelected(race);
-              }}
+              className={`race-item ${externalSelectedRace?.id === race.id ? 'selected' : ''}`}
+              onClick={() => handleRaceClick(race)}
             >
               <div className="race-id">{race.id}.</div>
               <div className="race-details">

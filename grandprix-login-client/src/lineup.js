@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
-import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaPlus } from 'react-icons/fa';
+import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaPlus, FaCopy } from 'react-icons/fa';
 import './lineup.css';
 
 function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, cookies, showAdmin}) {
@@ -28,6 +28,10 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
     const [displayTest, setDisplayTest] = useState(true);
     const [displayTestFullGrid, setDisplayTestFullGrid] = useState(false);
     const [showBoostsPopup, setShowBoostsPopup] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false); // For copy feedback
+    const [copyTableSuccess, setCopyTableSuccess] = useState(false); // For table copy feedback
+    const [copyDriversSuccess, setCopyDriversSuccess] = useState(false); // For drivers only copy feedback
+    const [copyTeamsSuccess, setCopyTeamsSuccess] = useState(false); // For teams only copy feedback
 
 
     useEffect(() => {
@@ -527,6 +531,176 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
                     </button>
                 </div>
 
+                {/* Copy to clipboard buttons for the table */}
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', gap: '10px' }}>
+                    {/* All (teams + drivers) */}
+                    <button
+                        className="lineup-copy-btn all"
+                        onClick={async () => {
+                            let rows = [];
+                            rows.push(['User', 'Boosts', 'Warning']);
+                            teams.forEach(team => {
+                                // Team row
+                                const teamWarningCount = totals.find(total => total.Username === team.username)?.Warnings;
+                                let teamWarning = '';
+                                if (teamWarningCount === 1) teamWarning = '10';
+                                else if (teamWarningCount === 2) teamWarning = '25';
+                                else if (teamWarningCount >= 3) teamWarning = 'out';
+                                const teamBoost = boosts.find((boost) => boost.id === team.id)?.boosted == 1
+                                    ? '4'
+                                    : boosts.find((boost) => boost.id === team.id)?.boosted == 2
+                                    ? '8'
+                                    : '' || '';
+                                let userCell = `${team.id / 100}. ${team.name} (${team.username})`;
+                                if (team.short1 || team.short2) {
+                                    userCell += ' [';
+                                    if (team.short1) userCell += team.short1;
+                                    if (team.short1 && team.short2) userCell += ' · ';
+                                    if (team.short2) userCell += team.short2;
+                                    userCell += ']';
+                                }
+                                if (team.duplicate) userCell += ' - duplicate boost';
+                                rows.push([userCell, teamBoost, teamWarning]);
+                                // Driver rows (filtered)
+                                const teamDrivers = drivers.filter(driver => Math.floor(driver.id / 100) === Math.floor(team.id / 100));
+                                const driver1 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 1) : null;
+                                const driver2 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 2) : null;
+                                let driverRows = teamDrivers
+                                    .filter(driver => {
+                                        const driverType = driver.id % 100;
+                                        if (displayTestFullGrid) {
+                                            return driverType >= 3;
+                                        }
+                                        return (displayRace && driverType <= 2) || (displayTest && driverType >= 3);
+                                    })
+                                    .concat(displayTestFullGrid ? [
+                                        ...(teamDrivers.some(d => d.id % 100 === 3) ? [] : [driver1 ? { ...driver1, id: team.id + 3, raceDriver: true } : null]),
+                                        ...(teamDrivers.some(d => d.id % 100 === 4) ? [] : [driver2 ? { ...driver2, id: team.id + 4, raceDriver: true } : null])
+                                    ].filter(Boolean) : []);
+                                driverRows.forEach(driver => {
+                                    if (!driver) return;
+                                    const driverWarningCount = totals.find(total => total.Username === driver.username)?.Warnings;
+                                    let driverWarning = '';
+                                    if (driverWarningCount === 1) driverWarning = '20';
+                                    else if (driverWarningCount === 2) driverWarning = '40';
+                                    else if (driverWarningCount >= 3) driverWarning = 'out';
+                                    let driverCell = `#${driver.id % 100}: ${driver.name} (${driver.username})`;
+                                    if (driver.duplicate) driverCell += ' - duplicate boost';
+                                    if (driver.raceDriver) driverCell += ' - race';
+                                    const driverBoost = boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? '200' : '' || '';
+                                    rows.push([driverCell, driverBoost, driverWarning]);
+                                });
+                            });
+                            const text = rows.map(row => row.join('\t')).join('\n');
+                            try {
+                                await navigator.clipboard.writeText(text);
+                                setCopyTableSuccess(true);
+                                setTimeout(() => setCopyTableSuccess(false), 1500);
+                            } catch (err) {
+                                setCopyTableSuccess(false);
+                            }
+                        }}
+                        title="Copy lineup table to clipboard for Excel"
+                    >
+                        <FaCopy /> Copy table to clipboard
+                    </button>
+                    {copyTableSuccess && <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>Copied!</span>}
+
+                    {/* Drivers only */}
+                    <button
+                        className="lineup-copy-btn drivers"
+                        onClick={async () => {
+                            let rows = [];
+                            rows.push(['User', 'Boosts', 'Warning']);
+                            teams.forEach(team => {
+                                const teamDrivers = drivers.filter(driver => Math.floor(driver.id / 100) === Math.floor(team.id / 100));
+                                const driver1 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 1) : null;
+                                const driver2 = displayTestFullGrid ? teamDrivers.find(d => d.id % 100 === 2) : null;
+                                let driverRows = teamDrivers
+                                    .filter(driver => {
+                                        const driverType = driver.id % 100;
+                                        if (displayTestFullGrid) {
+                                            return driverType >= 3;
+                                        }
+                                        return (displayRace && driverType <= 2) || (displayTest && driverType >= 3);
+                                    })
+                                    .concat(displayTestFullGrid ? [
+                                        ...(teamDrivers.some(d => d.id % 100 === 3) ? [] : [driver1 ? { ...driver1, id: team.id + 3, raceDriver: true } : null]),
+                                        ...(teamDrivers.some(d => d.id % 100 === 4) ? [] : [driver2 ? { ...driver2, id: team.id + 4, raceDriver: true } : null])
+                                    ].filter(Boolean) : []);
+                                driverRows.forEach(driver => {
+                                    if (!driver) return;
+                                    const driverWarningCount = totals.find(total => total.Username === driver.username)?.Warnings;
+                                    let driverWarning = '';
+                                    if (driverWarningCount === 1) driverWarning = '20';
+                                    else if (driverWarningCount === 2) driverWarning = '40';
+                                    else if (driverWarningCount >= 3) driverWarning = 'out';
+                                    let driverCell = `#${driver.id % 100}: ${driver.name} (${driver.username})`;
+                                    if (driver.duplicate) driverCell += ' - duplicate boost';
+                                    if (driver.raceDriver) driverCell += ' - race';
+                                    const driverBoost = boosts.find((boost) => boost.id === driver.id)?.boosted == 1 ? '200' : '' || '';
+                                    rows.push([driverCell, driverBoost, driverWarning]);
+                                });
+                            });
+                            const text = rows.map(row => row.join('\t')).join('\n');
+                            try {
+                                await navigator.clipboard.writeText(text);
+                                setCopyDriversSuccess(true);
+                                setTimeout(() => setCopyDriversSuccess(false), 1500);
+                            } catch (err) {
+                                setCopyDriversSuccess(false);
+                            }
+                        }}
+                        title="Copy only drivers to clipboard for Excel"
+                    >
+                        <FaCopy /> Copy drivers only
+                    </button>
+                    {copyDriversSuccess && <span style={{ color: '#2196F3', fontWeight: 'bold' }}>Copied!</span>}
+
+                    {/* Teams only */}
+                    <button
+                        className="lineup-copy-btn teams"
+                        onClick={async () => {
+                            let rows = [];
+                            rows.push(['User', 'Boosts', 'Warning']);
+                            teams.forEach(team => {
+                                const teamWarningCount = totals.find(total => total.Username === team.username)?.Warnings;
+                                let teamWarning = '';
+                                if (teamWarningCount === 1) teamWarning = '10';
+                                else if (teamWarningCount === 2) teamWarning = '25';
+                                else if (teamWarningCount >= 3) teamWarning = 'out';
+                                const teamBoost = boosts.find((boost) => boost.id === team.id)?.boosted == 1
+                                    ? '4'
+                                    : boosts.find((boost) => boost.id === team.id)?.boosted == 2
+                                    ? '8'
+                                    : '' || '';
+                                let userCell = `${team.id / 100}. ${team.name} (${team.username})`;
+                                if (team.short1 || team.short2) {
+                                    userCell += ' [';
+                                    if (team.short1) userCell += team.short1;
+                                    if (team.short1 && team.short2) userCell += ' · ';
+                                    if (team.short2) userCell += team.short2;
+                                    userCell += ']';
+                                }
+                                if (team.duplicate) userCell += ' - duplicate boost';
+                                rows.push([userCell, teamBoost, teamWarning]);
+                            });
+                            const text = rows.map(row => row.join('\t')).join('\n');
+                            try {
+                                await navigator.clipboard.writeText(text);
+                                setCopyTeamsSuccess(true);
+                                setTimeout(() => setCopyTeamsSuccess(false), 1500);
+                            } catch (err) {
+                                setCopyTeamsSuccess(false);
+                            }
+                        }}
+                        title="Copy only teams to clipboard for Excel"
+                    >
+                        <FaCopy /> Copy teams only
+                    </button>
+                    {copyTeamsSuccess && <span style={{ color: '#FF9800', fontWeight: 'bold' }}>Copied!</span>}
+                </div>
+
                 <button 
                     onClick={() => setShowBoostsPopup(true)} 
                     style={{ 
@@ -572,7 +746,36 @@ function Lineup({venueName,htmlContent,trackName,country,date, wrongUsername, co
                                     </div>
                                 )}
                             </div>
-                            <div className="help-footer">
+                            <div className="help-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <button
+                                    onClick={async () => {
+                                        // Build the text to copy
+                                        let text = '';
+                                        if (raceDriversBoosts.length > 0) {
+                                            text += raceDriversBoosts.join('\n');
+                                        }
+                                        if (testDriversBoosts.length > 0) {
+                                            if (text) text += '\n\n';
+                                            text += testDriversBoosts.join('\n');
+                                        }
+                                        if (boostedTeams.length > 0) {
+                                            if (text) text += '\n\n';
+                                            text += boostedTeams.join('\n');
+                                        }
+                                        try {
+                                            await navigator.clipboard.writeText(text);
+                                            setCopySuccess(true);
+                                            setTimeout(() => setCopySuccess(false), 1500);
+                                        } catch (err) {
+                                            setCopySuccess(false);
+                                        }
+                                    }}
+                                    className="lineup-copy-btn all"
+                                    title="Copy all boosts to clipboard"
+                                >
+                                    <FaCopy /> Copy to clipboard
+                                </button>
+                                {copySuccess && <span style={{ color: '#4CAF50', marginLeft: '10px', fontWeight: 'bold' }}>Copied!</span>}
                                 <button onClick={() => setShowBoostsPopup(false)}>Close</button>
                             </div>
                         </div>

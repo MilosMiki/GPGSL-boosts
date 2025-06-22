@@ -116,3 +116,36 @@
 .unmatched-date{
   width: 125px;
 }
+
+/* Copy to clipboard buttons for lineup table */
+.lineup-copy-btn {
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.lineup-copy-btn.all {
+    background-color: #4CAF50;
+}
+.lineup-copy-btn.all:hover {
+    background-color: #388e3c;
+}
+.lineup-copy-btn.drivers {
+    background-color: #2196F3;
+}
+.lineup-copy-btn.drivers:hover {
+    background-color: #1769aa;
+}
+.lineup-copy-btn.teams {
+    background-color: #FF9800;
+}
+.lineup-copy-btn.teams:hover {
+    background-color: #c66900;
+}

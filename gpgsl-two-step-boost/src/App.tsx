@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import BoostPicker from './components/BoostPicker';
 import CalendarPicker from './components/CalendarPicker';
@@ -23,9 +23,33 @@ export default function App() {
   const [teamBoostType, setTeamBoostType] = useState<'Single' | 'Double' | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
+  const [boostInfo, setBoostInfo] = useState<string | null>(null);
+  const [useCurrentGP, setUseCurrentGP] = useState(false); // Start with OFF
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [hasUserInteractedWithSwitch, setHasUserInteractedWithSwitch] = useState(false);
+
+  // Clear selected race when useCurrentGP is turned OFF
+  useEffect(() => {
+    if (!useCurrentGP) {
+      setSelectedRace(null);
+    }
+  }, [useCurrentGP]);
+
+  // Set switch to ON when boost info is loaded (only on first load)
+  useEffect(() => {
+    if (boostInfo && isFirstLoad && !hasUserInteractedWithSwitch) {
+      setUseCurrentGP(true);
+    }
+  }, [boostInfo, isFirstLoad, hasUserInteractedWithSwitch]);
+
+  // Track when user interacts with the switch
+  const handleUseCurrentGPChange = (value: boolean) => {
+    setHasUserInteractedWithSwitch(true);
+    setUseCurrentGP(value);
+  };
 
   const steps = [
-    { title: 'Login', component: <Login onLoginSuccess={handleLoginSuccess} setUsername={setUsername} /> },
+    { title: 'Login', component: <Login onLoginSuccess={handleLoginSuccess} setUsername={setUsername} setBoostInfo={setBoostInfo} useCurrentGP={useCurrentGP} setUseCurrentGP={handleUseCurrentGPChange} /> },
     { title: 'Boost Type', component: 
     <BoostPicker 
       handleBoostSelected={handleBoostSelected} 
@@ -39,7 +63,7 @@ export default function App() {
       team={team}
       setTeam={setTeam}
     /> },
-    { title: 'Select Race', component: <CalendarPicker onRaceSelected={handleRaceSelected} /> },
+    { title: 'Select Race', component: <CalendarPicker onRaceSelected={handleRaceSelected} boostInfo={boostInfo} useCurrentGP={useCurrentGP} externalSelectedRace={selectedRace} /> },
     { title: 'Confirm', component: (
       <PmForm 
         loginData={loginData!} 
@@ -78,9 +102,8 @@ export default function App() {
     //nextStep();
   }
 
-  function handleRaceSelected(race: Race) {
+  function handleRaceSelected(race: Race | null) {
     setSelectedRace(race);
-    //nextStep();
   }
 
   function handleSendSuccess() {
@@ -88,10 +111,14 @@ export default function App() {
   }
 
   function nextStep() {
-    if(step === 0){
+    if(step === 0 && isFirstLoad){
       setDriverBoost(false);
       setTeamBoost(false);
       setTeamBoostType(null);
+      if (!hasUserInteractedWithSwitch) {
+        setUseCurrentGP(true); // Only reset if user hasn't interacted with it
+      }
+      setIsFirstLoad(false);
     }
     if (step === 1) {
       if(!driverBoost && !teamBoost)
@@ -103,10 +130,22 @@ export default function App() {
         setError('Please select Single or Double team boost');
         return;
       }
+      
+      // If switch is ON and we have boost info, skip to step 3 (Confirm)
+      if (useCurrentGP && boostInfo) {
+        setStep(3);
+        return;
+      }
     }
-    if (step===2 && selectedRace === null){
-      setError('Please select a race');
-      return;
+    if (step === 2) {
+      if (useCurrentGP && selectedRace === null) {
+        setError('Please select a race');
+        return;
+      }
+      if (!useCurrentGP && selectedRace === null) {
+        setError('Please select a race manually');
+        return;
+      }
     }
     
     // Clear any existing error if validation passes
@@ -116,12 +155,17 @@ export default function App() {
 
   function prevStep() {
     setError(null);
+    // If switch is ON and we have boost info, skip to step 2 (Boost Type)
+    if (useCurrentGP && boostInfo && step === 3) {
+      setStep(1);
+      return;
+    }
     setStep(prev => Math.max(prev - 1, 0));
   }
 
   return (
     <div className="form-container">
-      <h1 className="text-center">Four Step Boost</h1>
+      <h1 className="text-center">{boostInfo && useCurrentGP ? 'Three Step Boost' : 'Four Step Boost'}</h1>
       
       {/* Progress bar */}
       <div className="progressbar">
@@ -187,7 +231,7 @@ export default function App() {
         )}
       </div>
       <div className="credits">
-          App version 0.1.0<br />
+          App version 0.1.1<br />
           Contact: <a href="mailto:milos.ancevski@student.um.si">milos.ancevski@student.um.si</a><br />
           GitHub: <a href="https://github.com/MilosMiki/GPGSL-boosts/tree/master/gpgsl-two-step-boost" target="_blank" rel="noopener noreferrer">MilosMiki/GPGSL-boosts</a>
       </div>

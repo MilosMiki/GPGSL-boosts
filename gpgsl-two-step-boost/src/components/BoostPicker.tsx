@@ -18,7 +18,18 @@ interface BoostPickerProps {
   setTeam: Dispatch<SetStateAction<Team | null>>;
 }
 
-export default function BoostPicker({ handleBoostSelected, driverBoost, teamBoost, username, boostType, setBoostType, driver, setDriver, team, setTeam}: BoostPickerProps) {
+export default function BoostPicker({ 
+  handleBoostSelected, 
+  driverBoost, 
+  teamBoost, 
+  username, 
+  boostType, 
+  setBoostType, 
+  driver, 
+  setDriver, 
+  team, 
+  setTeam 
+}: BoostPickerProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
