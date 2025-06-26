@@ -163,6 +163,20 @@ namespace GrandPrixLoginAPI
             var app = builder.Build();
             // Add CORS middleware to your application
             app.UseCors("AllowLocalhost");
+
+            app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok());
+            /*
+            app.Use(async (context, next) =>
+            {
+                Console.WriteLine("Incoming request: " + context.Request.Path);
+                await next.Invoke();
+                Console.WriteLine("Outgoing response headers:");
+                foreach (var header in context.Response.Headers)
+                {
+                    Console.WriteLine($"{header.Key}: {header.Value}");
+                }
+            });*/
+
             
             app.MapPost("/login/get-pm-page", async (HttpContext context) =>
             {
