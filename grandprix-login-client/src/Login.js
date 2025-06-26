@@ -5,6 +5,7 @@ const loginEndpoint = process.env.REACT_APP_API_BASE_URL || 'http://localhost:52
 function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, isLoggedIn, setIsLoggedIn, wrongUsername, setWrongUsername, 
     wrongLogin, setWrongLogin, username, setUsername, cookies, setCookie}) {
     const [password, setPassword] = useState('');
+    const [loginError, setLoginError] = useState('');
 
     // Load saved username from cookie when component mounts
     useEffect(() => {
@@ -16,6 +17,7 @@ function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, i
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoginError('');
         const formData = {
             Username: username,
             Password: password
@@ -33,12 +35,28 @@ function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, i
             });
 
             if (!response.ok) {
-                throw new Error('Login failed');
+                let errorMsg = 'Login failed';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch (jsonErr) {
+                    // If not JSON, try text
+                    try {
+                        errorMsg = await response.text();
+                    } catch (textErr) {
+                        // fallback to default
+                    }
+                }
+                setLoginError(errorMsg);
+                setWrongLogin(true);
+                setIsLoggedIn(false);
+                return;
             }
 
             const data = await response.json();
             console.log('Login successful:', data);
             setIsLoggedIn(true);
+            setLoginError('');
             
             // Save username to cookie (expires in 30 days)
             setCookie('username', username, { path: '/', maxAge: 2592000 });
@@ -54,6 +72,9 @@ function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, i
             setHtmlContent(htmlContent);
         } catch (error) {
             console.error('Error:', error);
+            setLoginError(error.message || 'An unexpected error occurred.');
+            setIsLoggedIn(false);
+            setWrongLogin(true);
         }
     };
 
@@ -82,9 +103,10 @@ function LoginApp({htmlContent, setHtmlContent, selectedDate, setSelectedDate, i
 
                 <button type="submit" className="login-button">Login</button>
                 &nbsp;
-                {isLoggedIn && !wrongLogin && !wrongUsername && <span className="logged-in-message">Logged in{username && " as " + username}! Select a venue to view boosts.</span>}
-                {isLoggedIn && !wrongLogin && wrongUsername && <span className="logged-in-message">Logged in{username && " as " + username}! Log in with the GPGSL account to view boosts.</span>}
-                {isLoggedIn && wrongLogin && <span className="logged-in-message">Incorrect credentials.</span>}
+                {loginError && <span className="logged-in-message">{loginError}</span>}
+                {!loginError && isLoggedIn && !wrongLogin && !wrongUsername && <span className="logged-in-message">Logged in{username && " as " + username}! Select a venue to view boosts.</span>}
+                {!loginError && isLoggedIn && !wrongLogin && wrongUsername && <span className="logged-in-message">Logged in{username && " as " + username}! Log in with the GPGSL account to view boosts.</span>}
+                {!loginError && isLoggedIn && wrongLogin && <span className="logged-in-message">Incorrect credentials.</span>}
             </form>
             <div className="boost-deadline-container">
                 <label className="login-label">Boost deadline:</label>
