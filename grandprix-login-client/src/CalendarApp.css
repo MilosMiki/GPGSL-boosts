@@ -1,0 +1,93 @@
+.calendar-app {
+    width: calc(100% - 20px); /* Adjust width to account for padding */
+    background-color: #f4f4f4;
+    padding: 20px 20px 0px 20px;
+}
+
+.calendar-app h1 {
+    text-align: left;
+    margin-bottom: 0px;
+    margin-top: 0px;
+    display: flex;
+}
+
+.calendar-app ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.calendar-app li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px;
+    margin-bottom: 3px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.calendar-app li:hover {
+    background-color: #e0e0e0; /* Light grey for hover */
+}
+
+.calendar-app li.selected {
+    background-color: #a0c4ff; /* Light blue for selected */
+}
+.venue-id {
+    margin-right: 10px;
+    font-weight: bold;
+}
+.venue-track-container {
+    display: flex;
+    flex-direction: column; /* Stack children vertically */
+}
+
+.venue-header {
+  display: flex;
+  align-items: center; /* Align ID and venue name horizontally */
+}
+
+.venue-details {
+  display: flex;
+  flex-direction: column; /* Stack venue-name and track-name vertically */
+}
+
+.track-name {
+    flex-grow: 1;
+    font-size: 0.6em; /* Smaller font size */
+}
+.venue-name {
+    flex-grow: 1;
+    font-size: 0.95em; /* Smaller font size */
+}
+
+.venue-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.add-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.add-entry input {
+    flex-grow: 1;
+    padding: 5px;
+}
+
+.edit-actions {
+    display: flex;
+    margin-top: 10px;
+}
+
+.edit-actions button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+}

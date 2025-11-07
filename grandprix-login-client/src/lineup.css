@@ -1,0 +1,380 @@
+.lineup-editor table {
+  width: 460px;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  margin: 20px 0;
+}
+.lineup-editor th,
+.lineup-editor td {
+  padding: 3px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+.lineup-editor th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+  color: #333;
+}
+.lineup-editor tr:hover {
+  background-color: #f9f9f9;
+}
+.lineup-editor tr.team-row {
+  background-color: #eaeaea;
+  font-weight: bold;
+}
+.lineup-editor tr.team-row:hover {
+  background-color: #e1e1e1;
+}
+.lineup-editor tr.driver-row {
+  background-color: #f9f9f9;
+}
+.lineup-editor tr.driver-row:hover {
+  background-color: #f4f4f4;
+}
+.lineup-editor tr.driver-row td:first-child {
+  padding-left: 30px; /* Indent driver rows */
+}
+.lineup-editor {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* Prevent stretching */
+}
+
+.lineup-editor tr.duplicate-team-row {
+  background-color: #fff3cd; /* Soft yellow tint */
+  font-weight: bold;
+}
+
+.lineup-editor tr.duplicate-team-row:hover {
+  background-color: #ffeb99; /* Slightly stronger yellow on hover */
+}
+
+.lineup-editor tr.duplicate-driver-row {
+  background-color: #fff9e6; /* Very light yellow tint */
+}
+
+.lineup-editor tr.duplicate-driver-row:hover {
+  background-color: #fff2cc; /* Slightly stronger but still light */
+}
+
+.lineup-editor tr.manually-fixed-team-row {
+  background-color: #ffe4cc; /* Soft orange tint */
+  font-weight: bold;
+}
+
+.lineup-editor tr.manually-fixed-team-row:hover {
+  background-color: #ffd4a3; /* Slightly stronger orange on hover */
+}
+
+.lineup-editor tr.manually-fixed-driver-row {
+  background-color: #fff0e0; /* Very light orange tint */
+}
+
+.lineup-editor tr.manually-fixed-driver-row:hover {
+  background-color: #ffe8cc; /* Slightly stronger but still light orange */
+}
+
+.lineup-editor tr.race-driver-row {
+  background-color: #ddf5eb; /* Soft but noticeable mint */
+}
+
+.lineup-editor tr.race-driver-row:hover {
+  background-color: #c5eedd; /* Gentle hover contrast */
+}
+
+.lineup-editor tr.cancelled-team-row {
+  background-color: #ffcccc; /* Light red tint */
+  font-weight: bold;
+}
+
+.lineup-editor tr.cancelled-team-row:hover {
+  background-color: #ffb3b3; /* Slightly stronger red on hover */
+}
+
+.lineup-editor tr.cancelled-driver-row {
+  background-color: #ffe6e6; /* Very light red tint */
+}
+
+.lineup-editor tr.cancelled-driver-row:hover {
+  background-color: #ffd9d9; /* Slightly stronger but still light red */
+}
+
+.main-table {
+  width: 65%;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.side-tables {
+  width: 60%;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column; /* Stack tables vertically */
+  gap: 20px; /* Add spacing between tables */
+}
+
+.unmatched-boosts,
+.other-messages,
+.deadline-boosts {
+  width: 100%; /* Ensure tables take full width of their container */
+}
+.unmatched-boosts table,
+.other-messages table,
+.deadline-boosts table {
+  width: 90%;
+}
+
+.other-boosts th,
+.other-boosts td {
+  padding: 10px;
+}
+
+.unmatched-boosts th,
+.unmatched-boosts td,
+.deadline-boosts th,
+.deadline-boosts td {
+  padding: 6px;
+}
+/* New CSS for DeadlineBoostsTable */
+.deadline-boosts table.deadline-table {
+  background-color: #fff5f5; /* Light red shade */
+}
+
+.deadline-boosts table.deadline-table th {
+  background-color: #ffd6d6; /* Slightly darker red for header */
+}
+
+.deadline-boosts table.deadline-table tr:hover {
+  background-color: #ffe6e6; /* Lighter red for hover */
+}
+
+.deadline-date,
+.unmatched-date {
+  width: 125px;
+}
+
+/* Copy to clipboard buttons for lineup table */
+.lineup-copy-btn {
+  font-weight: normal;
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+.lineup-copy-btn.all {
+  background-color: #4caf50;
+}
+.lineup-copy-btn.all:hover {
+  background-color: #388e3c;
+}
+.lineup-copy-btn.drivers {
+  background-color: #2196f3;
+}
+.lineup-copy-btn.drivers:hover {
+  background-color: #1769aa;
+}
+.lineup-copy-btn.teams {
+  background-color: #ff9800;
+}
+.lineup-copy-btn.teams:hover {
+  background-color: #c66900;
+}
+
+.refresh-gpg-btn {
+  background-color: #8e24aa; /* purple */
+  color: white;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  font-weight: normal;
+  box-sizing: border-box;
+  margin: 0;
+}
+.refresh-gpg-btn:hover {
+  background-color: #5c007a;
+}
+
+.no-bold {
+  font-weight: normal !important;
+}
+
+.list-boosts-btn {
+  background-color: #ff4444;
+  color: white;
+  padding: 7px 14px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  font-weight: bold;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+.list-boosts-btn:hover {
+  background-color: #b71c1c;
+}
+
+.filter-one-button {
+  border-radius: 8px;
+  padding: 6px 15px;
+  margin: 0px 6px;
+  border-width: 2px;
+  font-size: 16px;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+}
+.filter-one-button:hover {
+  background-color: #e0e0e0;
+  color: #222;
+}
+.filter-one-button.selected {
+  background-color: #4caf50;
+  color: white;
+}
+.filter-one-button.selected:hover {
+  background-color: #388e3c;
+  color: white;
+}
+
+/* Fix button styles */
+.fix-button {
+  background-color: #ffa500;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.fix-button:hover {
+  background-color: #ff8c00;
+}
+
+.fix-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Modal content */
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 90%;
+}
+
+.modal-content.fix-modal {
+  max-width: 700px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Form group */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.readonly-input {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.fixed-title-input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Modal footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-deny,
+.btn-approve {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.btn-deny {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-deny:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.btn-approve {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background-color: #388e3c;
+}
+
+.btn-deny:disabled,
+.btn-approve:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
