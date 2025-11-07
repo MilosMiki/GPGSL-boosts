@@ -29,3 +29,6 @@ obj/
 # Ignore local environment files
 .env
 *.env
+
+*.vs/
+*Properties/
