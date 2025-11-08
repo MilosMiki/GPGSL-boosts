@@ -145,7 +145,7 @@ namespace GrandPrixLoginAPI
                     else
                     {
                         // Fallback to a default origin if the environment variable is not set
-                        policy.WithOrigins("https://gpgsl-boosts.vercel.app", "http://localhost:3000");
+                        policy.WithOrigins("https://gpgsl-boosts.vercel.app", "https://four-step-boost.vercel.app", "http://localhost:3000", "http://localhost:5173");
                     }
                     policy.AllowAnyMethod();
                     policy.AllowAnyHeader();
@@ -256,15 +256,37 @@ namespace GrandPrixLoginAPI
                         return Results.Json(new { success = false, message = "Session cookie not found after login" });
                     }
 
-                    // 8. Return success with all needed data
-                    return Results.Json(new 
+                    // 8. Persist session cookie for subsequent authenticated endpoints
+                    // NOTE: Frontend cannot set a cookie for this API domain itself. We must issue Set-Cookie here.
+                    var cookieExpiry = sessionCookie.Expires < DateTime.UtcNow.AddMinutes(5)
+                        ? DateTime.UtcNow.AddDays(60) // fallback if upstream cookie has no meaningful expiry
+                        : sessionCookie.Expires;
+
+                    // In local dev over HTTP, do not mark Secure and prefer Lax to ensure the cookie is sent
+                    var isLocal = string.Equals(context.Request.Host.Host, "localhost", StringComparison.OrdinalIgnoreCase);
+                    var cookieOptions = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = !isLocal && context.Request.IsHttps,
+                        Expires = cookieExpiry,
+                        SameSite = isLocal ? SameSiteMode.Lax : SameSiteMode.None
+                    };
+
+                    context.Response.Cookies.Append(
+                        "phorum_session_v5",
+                        sessionCookie.Value,
+                        cookieOptions
+                    );
+
+                    // 9. Return success with all needed data (also echo cookie info)
+                    return Results.Json(new
                     {
                         success = true,
                         posting_token = pmTokenNode.GetAttributeValue("value", ""),
                         spamhurdles_pm = spamHurdleNode.GetAttributeValue("value", ""),
                         forum_id = "4", // Constant from the form
                         session_cookie = sessionCookie.Value,
-                        cookie_expires = sessionCookie.Expires.ToString("o")
+                        cookie_expires = cookieExpiry.ToString("o")
                     });
                 }
                 catch (Exception ex)
@@ -404,7 +426,7 @@ namespace GrandPrixLoginAPI
                 }
                 else
                 {
-                    return await loadPms(client, context, cookieCollection, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", username);
+                    return await loadPms(client, context, cookieCollection, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", username ?? "");
                 }
                 /*
                 try
@@ -554,7 +576,7 @@ namespace GrandPrixLoginAPI
                             // Check if it's a boost message
                             if (messageTitleLower.Contains("boost"))
                             {
-                                string boostType = null;
+                                string? boostType = null;
                                 
                                 if (messageTitleLower.Contains("driver boost"))
                                 {
@@ -686,7 +708,7 @@ namespace GrandPrixLoginAPI
                 }
                 else
                 {
-                    return await loadPms(client, context, cookies, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", requestBody.Username);
+                    return await loadPms(client, context, cookies, "https://www.grandprixgames.org/pm.php?4,page=list,folder_id=outbox", requestBody.Username ?? "");
                 }
             });
 
@@ -743,11 +765,11 @@ namespace GrandPrixLoginAPI
     }
     class Message
     {
-        public string Id { get; set; }
-        public string Title { get; set; }
-        public string Sender { get; set; }
-        public string Date { get; set; }
-        public string Body { get; set; }
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Sender { get; set; } = string.Empty;
+    public string Date { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
     }
 
     public class LoginRequest

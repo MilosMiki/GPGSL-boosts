@@ -108,6 +108,7 @@ export default function Login({
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include", // ensure Set-Cookie from backend is accepted in dev (different origin)
           body: JSON.stringify(credentials),
         }
       );
@@ -138,6 +139,11 @@ export default function Login({
               teamBoostCount: boostCountsData.teamBoostCount || 0,
             });
             setRaceBoosts(boostCountsData.raceBoosts || {});
+          } else if (boostCountsData.message === "No session cookie found") {
+            // Provide clearer guidance if cookie missing
+            setError(
+              "Session cookie missing. If this is dev, ensure backend CORS includes localhost:5173 and re-login."
+            );
           }
         }
       } catch (boostErr) {
