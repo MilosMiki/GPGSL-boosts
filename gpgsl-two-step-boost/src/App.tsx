@@ -308,7 +308,7 @@ export default function App() {
         )}
       </div>
       <div className="credits">
-        App version 0.2.0
+        App version 0.2.1
         <br />
         Contact:{" "}
         <a href="mailto:milos.ancevski@student.um.si">
