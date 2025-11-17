@@ -32,3 +32,5 @@ obj/
 
 *.vs/
 *Properties/
+
+regression_tests.md
