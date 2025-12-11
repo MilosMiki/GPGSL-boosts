@@ -222,6 +222,104 @@
   background-color: #b71c1c;
 }
 
+/* Dropdown button styles */
+.filter-dropdown-button {
+  border-radius: 8px;
+  padding: 8px 16px;
+  border: 2px solid #ccc;
+  font-size: 16px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-weight: 500;
+}
+
+.filter-dropdown-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Driver role filter - blue */
+.filter-dropdown-button.driver-role-filter {
+  background-color: #2196f3;
+  border-color: #1976d2;
+}
+
+.filter-dropdown-button.driver-role-filter:hover {
+  background-color: #1976d2;
+}
+
+/* Copy table filter - orange */
+.filter-dropdown-button.copy-table-filter {
+  background-color: #ff9800;
+  border-color: #f57c00;
+}
+
+.filter-dropdown-button.copy-table-filter:hover {
+  background-color: #f57c00;
+}
+
+/* Deadline label styles */
+.deadline-label {
+  color: #333;
+  font-weight: bold;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* Dropdown menu styles */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 180px;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f0f0f0;
+}
+
+.dropdown-item.selected {
+  background-color: #4caf50;
+  color: white;
+  font-weight: bold;
+}
+
+.dropdown-item.selected:hover {
+  background-color: #388e3c;
+}
+
+.dropdown-item:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.dropdown-item:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
 .filter-one-button {
   border-radius: 8px;
   padding: 6px 15px;

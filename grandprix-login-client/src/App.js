@@ -174,7 +174,7 @@ function App() {
           toggleHelp={toggleHelp}
         />
         <div className="credits">
-          App version 0.5.0
+          App version 0.5.1
           <br />
           Contact:{" "}
           <a href="mailto:milos.ancevski@student.um.si">
@@ -219,6 +219,7 @@ function App() {
             trackName={trackName}
             country={country}
             date={selectedDate}
+            setDate={setSelectedDate}
             wrongUsername={wrongUsername}
             cookies={cookies}
             showAdmin={isLoggedIn && !wrongLogin && !wrongUsername}

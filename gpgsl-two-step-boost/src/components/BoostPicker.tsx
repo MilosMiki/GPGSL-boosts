@@ -4,6 +4,7 @@ import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { Team } from "../types/team";
 import { Driver } from "../types/driver";
+import Tooltip from "./Popup";
 
 interface BoostPickerProps {
   handleBoostSelected: (
@@ -38,6 +39,26 @@ export default function BoostPicker({
   teamBoostCount,
 }: BoostPickerProps) {
   const [loading, setLoading] = useState(true);
+  const [showTeamBoostPopup, setShowTeamBoostPopup] = useState(false);
+  const [teamBoostButtonRef, setTeamBoostButtonRef] =
+    useState<HTMLElement | null>(null);
+
+  const handleTeamBoostClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // If user clicked on a radio button directly, let it handle the selection
+    if ((e.target as HTMLElement).tagName === "INPUT") {
+      setShowTeamBoostPopup(false);
+      return;
+    }
+
+    // If no team boost type is selected, show the tooltip
+    if (!boostType) {
+      setTeamBoostButtonRef(e.currentTarget);
+      setShowTeamBoostPopup(true);
+    } else {
+      // If a type is selected, proceed with the boost selection
+      handleBoostSelected("team", boostType);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,7 +149,7 @@ export default function BoostPicker({
           className={`boost-option ${teamBoost ? "selected" : ""} ${
             !team ? "disabled" : ""
           }`}
-          onClick={() => team && handleBoostSelected("team")}
+          onClick={handleTeamBoostClick}
         >
           <h3>Team Boost</h3>
           <p>
@@ -162,6 +183,12 @@ export default function BoostPicker({
           )}
         </div>
       </div>
+      <Tooltip
+        isOpen={showTeamBoostPopup}
+        onClose={() => setShowTeamBoostPopup(false)}
+        message="You must pick a Single or a Double team boost."
+        triggerElement={teamBoostButtonRef}
+      />
     </div>
   );
 }

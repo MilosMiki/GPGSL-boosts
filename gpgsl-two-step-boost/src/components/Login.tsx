@@ -1,6 +1,7 @@
 // src/components/Login.tsx
 import React, { useState, Dispatch, SetStateAction, useEffect } from "react";
 import { LoginRequest, LoginResponse } from "../types";
+import Tooltip from "./Popup";
 
 interface LoginProps {
   onLoginSuccess: (response: LoginResponse) => void;
@@ -55,6 +56,8 @@ export default function Login({
   const [error, setError] = useState<string | null>(null);
   const [loadingBoost, setLoadingBoost] = useState(true);
   const [boostInfo, setLocalBoostInfo] = useState<string | null>(null);
+  const [showHelpPopup, setShowHelpPopup] = useState(false);
+  const [helpButtonRef, setHelpButtonRef] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     fetchBoostAnnouncement();
@@ -199,6 +202,17 @@ export default function Login({
               />
             </div>
             <button
+              type="button"
+              className="help-btn"
+              onClick={(e) => {
+                setHelpButtonRef(e.currentTarget);
+                setShowHelpPopup(true);
+              }}
+              title="Get help"
+            >
+              ?
+            </button>
+            <button
               type="submit"
               className="btn width-50 ml-auto"
               disabled={loading}
@@ -248,6 +262,12 @@ export default function Login({
           )}
         </>
       )}
+      <Tooltip
+        isOpen={showHelpPopup}
+        onClose={() => setShowHelpPopup(false)}
+        message="Login with your grandprixgames.org user account."
+        triggerElement={helpButtonRef}
+      />
     </div>
   );
 }

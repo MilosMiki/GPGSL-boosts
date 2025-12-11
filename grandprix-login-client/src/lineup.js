@@ -206,6 +206,7 @@ function Lineup({
   trackName,
   country,
   date,
+  setDate,
   wrongUsername,
   cookies,
   showAdmin,
@@ -240,6 +241,18 @@ function Lineup({
   const [copyDriversSuccess, setCopyDriversSuccess] = useState(false); // For drivers only copy feedback
   const [copyTeamsSuccess, setCopyTeamsSuccess] = useState(false); // For teams only copy feedback
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Trigger to force boost re-processing
+  const [showDriverRoleDropdown, setShowDriverRoleDropdown] = useState(false); // For driver role filter dropdown
+  const [showCopyDropdown, setShowCopyDropdown] = useState(false); // For copy table dropdown
+  const [copyDropdownMessage, setCopyDropdownMessage] = useState(""); // Success message for copy dropdown
+
+  // Helper function to get current filter label
+  const getCurrentFilterLabel = () => {
+    if (displayTestFullGrid) return "Test (full grid)";
+    if (displayRace && displayTest) return "All";
+    if (displayRace && !displayTest) return "Race";
+    if (!displayRace && displayTest) return "Test";
+    return "All";
+  };
 
   useEffect(() => {
     if (drivers.length === 0 || teams.length === 0) {
@@ -972,382 +985,468 @@ function Lineup({
             List all boosts
           </button>
         </div>
-        {/* Add the filter buttons */}
-        <div className="filter-buttons" style={{ marginBottom: "10px" }}>
-          <button
-            className={`filter-one-button${
-              displayRace && displayTest && !displayTestFullGrid
-                ? " selected"
-                : ""
-            }`}
-            onClick={() => {
-              setDisplayRace(true);
-              setDisplayTest(true);
-              setDisplayTestFullGrid(false); // Reset full grid mode
-            }}
-            title="Show race and test drivers"
-          >
-            All
-          </button>
-          <button
-            className={`filter-one-button${
-              displayRace && !displayTest && !displayTestFullGrid
-                ? " selected"
-                : ""
-            }`}
-            onClick={() => {
-              setDisplayRace(true);
-              setDisplayTest(false);
-              setDisplayTestFullGrid(false); // Reset full grid mode
-            }}
-            title="Show only race drivers"
-          >
-            Race
-          </button>
-          <button
-            className={`filter-one-button${
-              !displayRace && displayTest && !displayTestFullGrid
-                ? " selected"
-                : ""
-            }`}
-            onClick={() => {
-              setDisplayRace(false);
-              setDisplayTest(true);
-              setDisplayTestFullGrid(false); // Reset full grid mode
-            }}
-            title="Show only test drivers"
-          >
-            Test
-          </button>
-          {/* New Test (full grid) button */}
-          <button
-            className={`filter-one-button${
-              displayTestFullGrid ? " selected" : ""
-            }`}
-            onClick={() => {
-              setDisplayRace(false);
-              setDisplayTest(true);
-              setDisplayTestFullGrid(true); // Activate full grid mode
-            }}
-            title="Show test drivers with full grid (copying race drivers if needed)"
-          >
-            Test (full grid)
-          </button>
-        </div>
-
-        {/* Copy to clipboard buttons for the table */}
+        {/* Dropdown filters container */}
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            gap: "15px",
             marginBottom: "10px",
-            gap: "10px",
+            alignItems: "flex-start",
           }}
         >
-          {/* All (teams + drivers) */}
-          <button
-            className="lineup-copy-btn all no-bold"
-            onClick={async () => {
-              let rows = [];
-              rows.push(["User", "Boosts", "Warning"]);
-              teams.forEach((team) => {
-                // Team row
-                const teamWarningCount = totals.find(
-                  (total) => total.Username === team.username
-                )?.Warnings;
-                let teamWarning = "";
-                if (teamWarningCount === 1) teamWarning = "10";
-                else if (teamWarningCount === 2) teamWarning = "25";
-                else if (teamWarningCount >= 3) teamWarning = "out";
-                const boost = boosts.find((b) => b.id === team.id);
-                const teamBoost = boost?.cancelled
-                  ? ""
-                  : boost?.boosted === 1
-                  ? "4"
-                  : boost?.boosted === 2
-                  ? "8"
-                  : "";
-                let userCell = `${team.id / 100}. ${team.name} (${
-                  team.username
-                })`;
-                if (team.short1 || team.short2) {
-                  userCell += " [";
-                  if (team.short1) userCell += team.short1;
-                  if (team.short1 && team.short2) userCell += " · ";
-                  if (team.short2) userCell += team.short2;
-                  userCell += "]";
-                }
-                if (boost?.cancelled) {
-                  userCell += " - user cancelled boost";
-                } else if (boost?.manuallyFixed) {
-                  userCell += " - manually matched";
-                } else if (team.duplicate) {
-                  userCell += " - duplicate boost";
-                }
-                rows.push([userCell, teamBoost, teamWarning]);
-                // Driver rows (filtered)
-                const teamDrivers = drivers.filter(
-                  (driver) =>
-                    Math.floor(driver.id / 100) === Math.floor(team.id / 100)
-                );
-                const driver1 = displayTestFullGrid
-                  ? teamDrivers.find((d) => d.id % 100 === 1)
-                  : null;
-                const driver2 = displayTestFullGrid
-                  ? teamDrivers.find((d) => d.id % 100 === 2)
-                  : null;
-                let driverRows = teamDrivers
-                  .filter((driver) => {
-                    const driverType = driver.id % 100;
-                    if (displayTestFullGrid) {
-                      return driverType >= 3;
-                    }
-                    return (
-                      (displayRace && driverType <= 2) ||
-                      (displayTest && driverType >= 3)
-                    );
-                  })
-                  .concat(
-                    displayTestFullGrid
-                      ? [
-                          ...(teamDrivers.some((d) => d.id % 100 === 3)
-                            ? []
-                            : [
-                                driver1
-                                  ? {
-                                      ...driver1,
-                                      id: team.id + 3,
-                                      raceDriver: true,
-                                    }
-                                  : null,
-                              ]),
-                          ...(teamDrivers.some((d) => d.id % 100 === 4)
-                            ? []
-                            : [
-                                driver2
-                                  ? {
-                                      ...driver2,
-                                      id: team.id + 4,
-                                      raceDriver: true,
-                                    }
-                                  : null,
-                              ]),
-                        ].filter(Boolean)
-                      : []
-                  );
-                driverRows.forEach((driver) => {
-                  if (!driver) return;
-                  const driverWarningCount = totals.find(
-                    (total) => total.Username === driver.username
-                  )?.Warnings;
-                  let driverWarning = "";
-                  if (driverWarningCount === 1) driverWarning = "20";
-                  else if (driverWarningCount === 2) driverWarning = "40";
-                  else if (driverWarningCount >= 3) driverWarning = "out";
-                  let driverCell = `#${driver.id % 100}: ${driver.name} (${
-                    driver.username
-                  })`;
-                  const boost = boosts.find((b) => b.id === driver.id);
-                  if (boost?.cancelled) {
-                    driverCell += " - user cancelled boost";
-                  } else if (boost?.manuallyFixed) {
-                    driverCell += " - manually matched";
-                  } else if (driver.duplicate) {
-                    driverCell += " - duplicate boost";
-                  }
-                  if (driver.raceDriver) driverCell += " - race";
-                  const driverBoost = boost?.cancelled
-                    ? ""
-                    : boost?.boosted === 1
-                    ? "200"
-                    : "";
-                  rows.push([driverCell, driverBoost, driverWarning]);
-                });
-              });
-              const text = rows.map((row) => row.join("\t")).join("\n");
-              try {
-                await navigator.clipboard.writeText(text);
-                setCopyTableSuccess(true);
-                setTimeout(() => setCopyTableSuccess(false), 1500);
-              } catch (err) {
-                setCopyTableSuccess(false);
-              }
-            }}
-            title="Copy lineup table to clipboard for Excel"
-          >
-            <FaCopy /> Copy table to clipboard
-          </button>
-          {copyTableSuccess && (
-            <span style={{ color: "#4CAF50", fontWeight: "bold" }}>
-              Copied!
-            </span>
-          )}
+          {/* Driver role filter dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              className="filter-dropdown-button driver-role-filter"
+              onClick={() => setShowDriverRoleDropdown(!showDriverRoleDropdown)}
+              title="Filter drivers by role"
+            >
+              Filter by driver role: {getCurrentFilterLabel()} ▼
+            </button>
+            {showDriverRoleDropdown && (
+              <div className="dropdown-menu">
+                <button
+                  className={`dropdown-item${
+                    displayRace && displayTest && !displayTestFullGrid
+                      ? " selected"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setDisplayRace(true);
+                    setDisplayTest(true);
+                    setDisplayTestFullGrid(false);
+                    setShowDriverRoleDropdown(false);
+                  }}
+                >
+                  All
+                </button>
+                <button
+                  className={`dropdown-item${
+                    displayRace && !displayTest && !displayTestFullGrid
+                      ? " selected"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setDisplayRace(true);
+                    setDisplayTest(false);
+                    setDisplayTestFullGrid(false);
+                    setShowDriverRoleDropdown(false);
+                  }}
+                >
+                  Race
+                </button>
+                <button
+                  className={`dropdown-item${
+                    !displayRace && displayTest && !displayTestFullGrid
+                      ? " selected"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setDisplayRace(false);
+                    setDisplayTest(true);
+                    setDisplayTestFullGrid(false);
+                    setShowDriverRoleDropdown(false);
+                  }}
+                >
+                  Test
+                </button>
+                <button
+                  className={`dropdown-item${
+                    displayTestFullGrid ? " selected" : ""
+                  }`}
+                  onClick={() => {
+                    setDisplayRace(false);
+                    setDisplayTest(true);
+                    setDisplayTestFullGrid(true);
+                    setShowDriverRoleDropdown(false);
+                  }}
+                >
+                  Test (full grid)
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* Drivers only */}
-          <button
-            className="lineup-copy-btn drivers no-bold"
-            onClick={async () => {
-              let rows = [];
-              rows.push(["User", "Boosts", "Warning"]);
-              teams.forEach((team) => {
-                const teamDrivers = drivers.filter(
-                  (driver) =>
-                    Math.floor(driver.id / 100) === Math.floor(team.id / 100)
-                );
-                const driver1 = displayTestFullGrid
-                  ? teamDrivers.find((d) => d.id % 100 === 1)
-                  : null;
-                const driver2 = displayTestFullGrid
-                  ? teamDrivers.find((d) => d.id % 100 === 2)
-                  : null;
-                let driverRows = teamDrivers
-                  .filter((driver) => {
-                    const driverType = driver.id % 100;
-                    if (displayTestFullGrid) {
-                      return driverType >= 3;
+          {/* Copy table dropdown */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <button
+              className="filter-dropdown-button copy-table-filter"
+              onClick={() => setShowCopyDropdown(!showCopyDropdown)}
+              title="Copy table to clipboard"
+            >
+              <FaCopy /> Copy table ▼
+            </button>
+            {showCopyDropdown && (
+              <div className="dropdown-menu">
+                {/* Copy entire table */}
+                <button
+                  className="dropdown-item"
+                  onClick={async () => {
+                    let rows = [];
+                    rows.push(["User", "Boosts", "Warning"]);
+                    teams.forEach((team) => {
+                      // Team row
+                      const teamWarningCount = totals.find(
+                        (total) => total.Username === team.username
+                      )?.Warnings;
+                      let teamWarning = "";
+                      if (teamWarningCount === 1) teamWarning = "10";
+                      else if (teamWarningCount === 2) teamWarning = "25";
+                      else if (teamWarningCount >= 3) teamWarning = "out";
+                      const boost = boosts.find((b) => b.id === team.id);
+                      const teamBoost = boost?.cancelled
+                        ? ""
+                        : boost?.boosted === 1
+                        ? "4"
+                        : boost?.boosted === 2
+                        ? "8"
+                        : "";
+                      let userCell = `${team.id / 100}. ${team.name} (${
+                        team.username
+                      })`;
+                      if (team.short1 || team.short2) {
+                        userCell += " [";
+                        if (team.short1) userCell += team.short1;
+                        if (team.short1 && team.short2) userCell += " · ";
+                        if (team.short2) userCell += team.short2;
+                        userCell += "]";
+                      }
+                      if (boost?.cancelled) {
+                        userCell += " - user cancelled boost";
+                      } else if (boost?.manuallyFixed) {
+                        userCell += " - manually matched";
+                      } else if (team.duplicate) {
+                        userCell += " - duplicate boost";
+                      }
+                      rows.push([userCell, teamBoost, teamWarning]);
+                      // Driver rows (filtered)
+                      const teamDrivers = drivers.filter(
+                        (driver) =>
+                          Math.floor(driver.id / 100) ===
+                          Math.floor(team.id / 100)
+                      );
+                      const driver1 = displayTestFullGrid
+                        ? teamDrivers.find((d) => d.id % 100 === 1)
+                        : null;
+                      const driver2 = displayTestFullGrid
+                        ? teamDrivers.find((d) => d.id % 100 === 2)
+                        : null;
+                      let driverRows = teamDrivers
+                        .filter((driver) => {
+                          const driverType = driver.id % 100;
+                          if (displayTestFullGrid) {
+                            return driverType >= 3;
+                          }
+                          return (
+                            (displayRace && driverType <= 2) ||
+                            (displayTest && driverType >= 3)
+                          );
+                        })
+                        .concat(
+                          displayTestFullGrid
+                            ? [
+                                ...(teamDrivers.some((d) => d.id % 100 === 3)
+                                  ? []
+                                  : [
+                                      driver1
+                                        ? {
+                                            ...driver1,
+                                            id: team.id + 3,
+                                            raceDriver: true,
+                                          }
+                                        : null,
+                                    ]),
+                                ...(teamDrivers.some((d) => d.id % 100 === 4)
+                                  ? []
+                                  : [
+                                      driver2
+                                        ? {
+                                            ...driver2,
+                                            id: team.id + 4,
+                                            raceDriver: true,
+                                          }
+                                        : null,
+                                    ]),
+                              ].filter(Boolean)
+                            : []
+                        );
+                      driverRows.forEach((driver) => {
+                        if (!driver) return;
+                        const driverWarningCount = totals.find(
+                          (total) => total.Username === driver.username
+                        )?.Warnings;
+                        let driverWarning = "";
+                        if (driverWarningCount === 1) driverWarning = "20";
+                        else if (driverWarningCount === 2) driverWarning = "40";
+                        else if (driverWarningCount >= 3) driverWarning = "out";
+                        let driverCell = `#${driver.id % 100}: ${
+                          driver.name
+                        } (${driver.username})`;
+                        const boost = boosts.find((b) => b.id === driver.id);
+                        if (boost?.cancelled) {
+                          driverCell += " - user cancelled boost";
+                        } else if (boost?.manuallyFixed) {
+                          driverCell += " - manually matched";
+                        } else if (driver.duplicate) {
+                          driverCell += " - duplicate boost";
+                        }
+                        if (driver.raceDriver) driverCell += " - race";
+                        const driverBoost = boost?.cancelled
+                          ? ""
+                          : boost?.boosted === 1
+                          ? "200"
+                          : "";
+                        rows.push([driverCell, driverBoost, driverWarning]);
+                      });
+                    });
+                    const text = rows.map((row) => row.join("\t")).join("\n");
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      setCopyDropdownMessage("Entire table copied!");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
+                    } catch (err) {
+                      setCopyDropdownMessage("Copy failed");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
                     }
-                    return (
-                      (displayRace && driverType <= 2) ||
-                      (displayTest && driverType >= 3)
-                    );
-                  })
-                  .concat(
-                    displayTestFullGrid
-                      ? [
-                          ...(teamDrivers.some((d) => d.id % 100 === 3)
-                            ? []
-                            : [
-                                driver1
-                                  ? {
-                                      ...driver1,
-                                      id: team.id + 3,
-                                      raceDriver: true,
-                                    }
-                                  : null,
-                              ]),
-                          ...(teamDrivers.some((d) => d.id % 100 === 4)
-                            ? []
-                            : [
-                                driver2
-                                  ? {
-                                      ...driver2,
-                                      id: team.id + 4,
-                                      raceDriver: true,
-                                    }
-                                  : null,
-                              ]),
-                        ].filter(Boolean)
-                      : []
-                  );
-                driverRows.forEach((driver) => {
-                  if (!driver) return;
-                  const driverWarningCount = totals.find(
-                    (total) => total.Username === driver.username
-                  )?.Warnings;
-                  let driverWarning = "";
-                  if (driverWarningCount === 1) driverWarning = "20";
-                  else if (driverWarningCount === 2) driverWarning = "40";
-                  else if (driverWarningCount >= 3) driverWarning = "out";
-                  let driverCell = `#${driver.id % 100}: ${driver.name} (${
-                    driver.username
-                  })`;
-                  const boost = boosts.find((b) => b.id === driver.id);
-                  if (boost?.cancelled) {
-                    driverCell += " - user cancelled boost";
-                  } else if (boost?.manuallyFixed) {
-                    driverCell += " - manually matched";
-                  } else if (driver.duplicate) {
-                    driverCell += " - duplicate boost";
-                  }
-                  if (driver.raceDriver) driverCell += " - race";
-                  const driverBoost = boost?.cancelled
-                    ? ""
-                    : boost?.boosted === 1
-                    ? "200"
-                    : "";
-                  rows.push([driverCell, driverBoost, driverWarning]);
-                });
-              });
-              const text = rows.map((row) => row.join("\t")).join("\n");
-              try {
-                await navigator.clipboard.writeText(text);
-                setCopyDriversSuccess(true);
-                setTimeout(() => setCopyDriversSuccess(false), 1500);
-              } catch (err) {
-                setCopyDriversSuccess(false);
-              }
-            }}
-            title="Copy only drivers to clipboard for Excel"
-          >
-            <FaCopy /> Copy drivers only
-          </button>
-          {copyDriversSuccess && (
-            <span style={{ color: "#2196F3", fontWeight: "bold" }}>
-              Copied!
-            </span>
-          )}
-
-          {/* Teams only */}
-          <button
-            className="lineup-copy-btn teams no-bold"
-            onClick={async () => {
-              let rows = [];
-              rows.push(["User", "Boosts", "Warning"]);
-              teams.forEach((team) => {
-                const teamWarningCount = totals.find(
-                  (total) => total.Username === team.username
-                )?.Warnings;
-                let teamWarning = "";
-                if (teamWarningCount === 1) teamWarning = "10";
-                else if (teamWarningCount === 2) teamWarning = "25";
-                else if (teamWarningCount >= 3) teamWarning = "out";
-                const boost = boosts.find((b) => b.id === team.id);
-                const teamBoost = boost?.cancelled
-                  ? ""
-                  : boost?.boosted === 1
-                  ? "4"
-                  : boost?.boosted === 2
-                  ? "8"
-                  : "";
-                let userCell = `${team.id / 100}. ${team.name} (${
-                  team.username
-                })`;
-                if (team.short1 || team.short2) {
-                  userCell += " [";
-                  if (team.short1) userCell += team.short1;
-                  if (team.short1 && team.short2) userCell += " · ";
-                  if (team.short2) userCell += team.short2;
-                  userCell += "]";
-                }
-                if (boost?.cancelled) {
-                  userCell += " - user cancelled boost";
-                } else if (boost?.manuallyFixed) {
-                  userCell += " - manually matched";
-                } else if (team.duplicate) {
-                  userCell += " - duplicate boost";
-                }
-                rows.push([userCell, teamBoost, teamWarning]);
-              });
-              const text = rows.map((row) => row.join("\t")).join("\n");
-              try {
-                await navigator.clipboard.writeText(text);
-                setCopyTeamsSuccess(true);
-                setTimeout(() => setCopyTeamsSuccess(false), 1500);
-              } catch (err) {
-                setCopyTeamsSuccess(false);
-              }
-            }}
-            title="Copy only teams to clipboard for Excel"
-          >
-            <FaCopy /> Copy teams only
-          </button>
-          {copyTeamsSuccess && (
-            <span style={{ color: "#FF9800", fontWeight: "bold" }}>
-              Copied!
-            </span>
-          )}
+                    setShowCopyDropdown(false);
+                  }}
+                >
+                  Copy entire table
+                </button>
+                {/* Copy drivers only */}
+                <button
+                  className="dropdown-item"
+                  onClick={async () => {
+                    let rows = [];
+                    rows.push(["User", "Boosts", "Warning"]);
+                    teams.forEach((team) => {
+                      const teamDrivers = drivers.filter(
+                        (driver) =>
+                          Math.floor(driver.id / 100) ===
+                          Math.floor(team.id / 100)
+                      );
+                      const driver1 = displayTestFullGrid
+                        ? teamDrivers.find((d) => d.id % 100 === 1)
+                        : null;
+                      const driver2 = displayTestFullGrid
+                        ? teamDrivers.find((d) => d.id % 100 === 2)
+                        : null;
+                      let driverRows = teamDrivers
+                        .filter((driver) => {
+                          const driverType = driver.id % 100;
+                          if (displayTestFullGrid) {
+                            return driverType >= 3;
+                          }
+                          return (
+                            (displayRace && driverType <= 2) ||
+                            (displayTest && driverType >= 3)
+                          );
+                        })
+                        .concat(
+                          displayTestFullGrid
+                            ? [
+                                ...(teamDrivers.some((d) => d.id % 100 === 3)
+                                  ? []
+                                  : [
+                                      driver1
+                                        ? {
+                                            ...driver1,
+                                            id: team.id + 3,
+                                            raceDriver: true,
+                                          }
+                                        : null,
+                                    ]),
+                                ...(teamDrivers.some((d) => d.id % 100 === 4)
+                                  ? []
+                                  : [
+                                      driver2
+                                        ? {
+                                            ...driver2,
+                                            id: team.id + 4,
+                                            raceDriver: true,
+                                          }
+                                        : null,
+                                    ]),
+                              ].filter(Boolean)
+                            : []
+                        );
+                      driverRows.forEach((driver) => {
+                        if (!driver) return;
+                        const driverWarningCount = totals.find(
+                          (total) => total.Username === driver.username
+                        )?.Warnings;
+                        let driverWarning = "";
+                        if (driverWarningCount === 1) driverWarning = "20";
+                        else if (driverWarningCount === 2) driverWarning = "40";
+                        else if (driverWarningCount >= 3) driverWarning = "out";
+                        let driverCell = `#${driver.id % 100}: ${
+                          driver.name
+                        } (${driver.username})`;
+                        const boost = boosts.find((b) => b.id === driver.id);
+                        if (boost?.cancelled) {
+                          driverCell += " - user cancelled boost";
+                        } else if (boost?.manuallyFixed) {
+                          driverCell += " - manually matched";
+                        } else if (driver.duplicate) {
+                          driverCell += " - duplicate boost";
+                        }
+                        if (driver.raceDriver) driverCell += " - race";
+                        const driverBoost = boost?.cancelled
+                          ? ""
+                          : boost?.boosted === 1
+                          ? "200"
+                          : "";
+                        rows.push([driverCell, driverBoost, driverWarning]);
+                      });
+                    });
+                    const text = rows.map((row) => row.join("\t")).join("\n");
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      setCopyDropdownMessage("Drivers copied!");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
+                    } catch (err) {
+                      setCopyDropdownMessage("Copy failed");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
+                    }
+                    setShowCopyDropdown(false);
+                  }}
+                >
+                  Copy drivers only
+                </button>
+                {/* Copy teams only */}
+                <button
+                  className="dropdown-item"
+                  onClick={async () => {
+                    let rows = [];
+                    rows.push(["User", "Boosts", "Warning"]);
+                    teams.forEach((team) => {
+                      const teamWarningCount = totals.find(
+                        (total) => total.Username === team.username
+                      )?.Warnings;
+                      let teamWarning = "";
+                      if (teamWarningCount === 1) teamWarning = "10";
+                      else if (teamWarningCount === 2) teamWarning = "25";
+                      else if (teamWarningCount >= 3) teamWarning = "out";
+                      const boost = boosts.find((b) => b.id === team.id);
+                      const teamBoost = boost?.cancelled
+                        ? ""
+                        : boost?.boosted === 1
+                        ? "4"
+                        : boost?.boosted === 2
+                        ? "8"
+                        : "";
+                      let userCell = `${team.id / 100}. ${team.name} (${
+                        team.username
+                      })`;
+                      if (team.short1 || team.short2) {
+                        userCell += " [";
+                        if (team.short1) userCell += team.short1;
+                        if (team.short1 && team.short2) userCell += " · ";
+                        if (team.short2) userCell += team.short2;
+                        userCell += "]";
+                      }
+                      if (boost?.cancelled) {
+                        userCell += " - user cancelled boost";
+                      } else if (boost?.manuallyFixed) {
+                        userCell += " - manually matched";
+                      } else if (team.duplicate) {
+                        userCell += " - duplicate boost";
+                      }
+                      rows.push([userCell, teamBoost, teamWarning]);
+                    });
+                    const text = rows.map((row) => row.join("\t")).join("\n");
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      setCopyDropdownMessage("Teams copied!");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
+                    } catch (err) {
+                      setCopyDropdownMessage("Copy failed");
+                      setTimeout(() => setCopyDropdownMessage(""), 2000);
+                    }
+                    setShowCopyDropdown(false);
+                  }}
+                >
+                  Copy teams only
+                </button>
+              </div>
+            )}
+            {copyDropdownMessage && (
+              <span style={{ color: "#4CAF50", fontWeight: "bold" }}>
+                {copyDropdownMessage}
+              </span>
+            )}
+          </div>
         </div>
-
+        {/* Boost deadline filter - second row */}
+        <div
+          style={{
+            display: "flex",
+            gap: "15px",
+            marginBottom: "10px",
+            alignItems: "flex-start",
+          }}
+        >
+          {/* Boost deadline picker */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <label className="deadline-label">Set boost deadline:</label>
+            <div className="date-input-with-icon">
+              <input
+                type="text"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+                    const [day, month, year] = value.split(".");
+                    const isoDate = `${year}-${month}-${day}`;
+                    setDate(isoDate);
+                  }
+                }}
+                onFocus={(e) => {
+                  const dateInput = e.target;
+                  const wrapper = dateInput.closest(".date-input-with-icon");
+                  const hiddenDatePicker = wrapper.querySelector(
+                    ".hidden-date-picker"
+                  );
+                  if (hiddenDatePicker) {
+                    hiddenDatePicker.showPicker?.();
+                  }
+                }}
+                value={(() => {
+                  if (!date) return "";
+                  const [year, month, day] = date.split("-");
+                  return `${day}.${month}.${year}`;
+                })()}
+                placeholder="DD.MM.YYYY"
+                className="date-picker-display"
+              />
+              <span className="calendar-icon-inside">📅</span>
+              <input
+                type="date"
+                onChange={(e) => setDate(e.target.value)}
+                value={date}
+                className="hidden-date-picker"
+                style={{
+                  position: "absolute",
+                  opacity: 0,
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
+          </div>
+        </div>{" "}
         {showBoostsPopup && (
           <div
             className="help-overlay"
@@ -1431,7 +1530,6 @@ function Lineup({
             </div>
           </div>
         )}
-
         <table>
           <thead>
             <tr>
@@ -1659,7 +1757,6 @@ function Lineup({
             ))}
           </tbody>
         </table>
-
         {showAdmin ? (
           !editMode ? (
             <button onClick={() => setEditMode(!editMode)}>

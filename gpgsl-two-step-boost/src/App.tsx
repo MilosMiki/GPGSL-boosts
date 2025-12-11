@@ -56,6 +56,45 @@ export default function App() {
     setUseCurrentGP(value);
   };
 
+  // Keyboard shortcuts for navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Right arrow for next step
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        // On login page (step 0), trigger login button
+        if (step === 0) {
+          const loginBtn = document.querySelector(
+            '.login-form .btn[type="submit"]'
+          ) as HTMLButtonElement;
+          if (loginBtn && !loginBtn.disabled) {
+            loginBtn.click();
+          }
+        } else {
+          nextStep();
+        }
+      }
+      // Left arrow for previous step
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        prevStep();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [
+    step,
+    driverBoost,
+    teamBoost,
+    teamBoostType,
+    selectedRace,
+    useCurrentGP,
+    boostInfo,
+  ]);
+
   const steps = [
     {
       title: "Login",
@@ -308,7 +347,7 @@ export default function App() {
         )}
       </div>
       <div className="credits">
-        App version 0.2.1
+        App version 0.2.2
         <br />
         Contact:{" "}
         <a href="mailto:milos.ancevski@student.um.si">

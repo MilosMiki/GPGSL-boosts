@@ -105,6 +105,12 @@ input {
   margin-left: auto;
 }
 
+.login-form form .btn.width-50.ml-auto {
+  width: 10rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
 .text-center {
   text-align: center;
 }
@@ -217,8 +223,16 @@ input {
   margin: 0 auto;
 }
 
+.login-form form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .input-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
 }
 
 @keyframes animate {
@@ -686,4 +700,153 @@ input {
 .credits {
   margin-top: 30px;
   color: var(--credits-color);
+}
+
+/* Popup Styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.popup-content {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.popup-content h3 {
+  margin-top: 0;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+}
+
+.popup-content p {
+  color: var(--text-color);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.popup-close-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+}
+
+.popup-close-btn:hover {
+  background-color: rgb(8, 58, 135);
+  opacity: 0.9;
+}
+
+.popup-close-btn:active {
+  transform: scale(0.98);
+}
+
+/* Tooltip Styles */
+.tooltip {
+  position: fixed;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  border-radius: 0.35rem;
+  max-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease-in-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.tooltip p {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Help Button in Login Form */
+.help-btn {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.help-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.help-btn:active {
+  transform: scale(0.95);
+}
+
+.login-form form .help-btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }

@@ -95,31 +95,55 @@ function LoginApp({
     }
   };
 
+  // Helper function to format date as DD.MM.YYYY
+  const formatDateToDDMMYYYY = (dateString) => {
+    if (!dateString) return "";
+    const [year, month, day] = dateString.split("-");
+    return `${day}.${month}.${year}`;
+  };
+
+  // Helper function to convert DD.MM.YYYY back to YYYY-MM-DD for input value
+  const parseDateFromDDMMYYYY = (formattedDate) => {
+    if (!formattedDate) return "";
+    const [day, month, year] = formattedDate.split(".");
+    return `${year}-${month}-${day}`;
+  };
+
   return (
     <div className="login-container">
-      <form onSubmit={handleSubmit}>
-        <label className="login-label">
-          Username:
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="login-input"
-          />
-        </label>
-        <label className="login-label">
-          Password:
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="login-input"
-          />
-        </label>
-        <button type="submit" className="login-button">
-          Login
-        </button>
-        &nbsp;
+      <div className="login-container-row">
+        <form onSubmit={handleSubmit} className="login-form-wrapper">
+          <div className="login-form">
+            <label className="login-label">
+              Username:
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="login-input"
+              />
+            </label>
+            <label className="login-label">
+              Password:
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="login-input"
+              />
+            </label>
+            <button
+              type="submit"
+              className={`login-button ${
+                isLoggedIn && !wrongLogin ? "logged-in" : ""
+              }`}
+            >
+              Login
+            </button>
+          </div>
+        </form>
+      </div>
+      <div className="login-status-messages">
         {loginError && <span className="logged-in-message">{loginError}</span>}
         {!loginError && isLoggedIn && !wrongLogin && !wrongUsername && (
           <span className="logged-in-message">
@@ -136,15 +160,6 @@ function LoginApp({
         {!loginError && isLoggedIn && wrongLogin && (
           <span className="logged-in-message">Incorrect credentials.</span>
         )}
-      </form>
-      <div className="boost-deadline-container">
-        <label className="login-label">Boost deadline:</label>
-        <input
-          type="date"
-          onChange={(e) => setSelectedDate(e.target.value)}
-          value={selectedDate}
-          className="date-picker"
-        />
       </div>
     </div>
   );
